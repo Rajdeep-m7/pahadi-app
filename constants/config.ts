@@ -6,7 +6,7 @@ import { Platform } from 'react-native';
  * For Physical Device, use your computer's local IP address (e.g., 192.168.1.XX)
  */
 const DEV_API_URL = Platform.select({
-  android: 'http://192.168.1.6:5000/api/v1',
+  android: 'http://192.168.1.9:5000/api/v1',
   ios: 'http://localhost:5000/api/v1',
   default: 'http://localhost:5000/api/v1',
 });

@@ -110,15 +110,18 @@ export default function HeroSlider() {
 
 const styles = StyleSheet.create({
   container: {
+    borderRadius:10,
     height: 350,
     width: width,
     backgroundColor: "#fff",
   },
   slide: {
     width: width,
-    height: 340,
+    padding:10,
+    height: 345,
   },
   image: {
+    borderRadius:10,
     width: "100%",
     height: "100%",
     resizeMode: "cover",
