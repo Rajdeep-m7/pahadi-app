@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { router } from 'expo-router';
+import { useWishlistStore } from '@/store/wishlistStore';
 
 const { width } = Dimensions.get('window');
 // Screen - 20 (side padding) - 10 (gap) = width - 30
@@ -17,7 +19,9 @@ export interface ProductCardProps {
   rating?: number;
   isOutOfStock?: boolean;
   attributes?: Record<string, string>;
-  isWishlisted?: boolean;
+  slug?: string;
+  variantId?: string;
+  _id?: string; // Product ID
   onPress?: () => void;
   onWishlistToggle?: () => void;
   onAddToCart?: () => void;
@@ -33,22 +37,51 @@ export default function ProductCard({
   rating = 0,
   isOutOfStock = false,
   attributes,
-  isWishlisted = false,
+  slug,
+  variantId,
+  _id,
   onPress,
   onWishlistToggle,
   onAddToCart,
 }: ProductCardProps) {
-  const [localWishlisted, setLocalWishlisted] = useState(isWishlisted);
+  const { toggleItem, isInWishlist } = useWishlistStore();
+  const isWishlisted = variantId ? isInWishlist(variantId) : false;
+
+  const handlePress = () => {
+    if (onPress) {
+      onPress();
+    } else if (slug) {
+      router.push(`/product/${slug}`);
+    }
+  };
 
   const handleWishlist = () => {
-    setLocalWishlisted(!localWishlisted);
+    if (!variantId) {
+      console.warn('Wishlist error: variantId missing for', title);
+      return;
+    }
+    
+    toggleItem({
+      _id: _id || '',
+      variantId,
+      title,
+      image,
+      price,
+      oldPrice,
+      discount,
+      categoryName,
+      rating,
+      isOutOfStock,
+      slug,
+    });
+    
     if (onWishlistToggle) onWishlistToggle();
   };
 
   return (
     <TouchableOpacity 
       style={styles.cardContainer} 
-      onPress={onPress} 
+      onPress={handlePress} 
       activeOpacity={0.9}
     >
       {/* IMAGE SECTION */}
@@ -74,15 +107,13 @@ export default function ProductCard({
           <IconSymbol 
             name="heart" 
             size={20} 
-            color={localWishlisted ? '#ef4444' : '#4b5563'} 
+            color={isWishlisted ? '#ef4444' : '#4b5563'} 
           />
         </TouchableOpacity>
       </View>
 
-      {/* DETAILS SECTION */}
       <View style={styles.detailsContainer}>
         
-        {/* Title & Rating */}
         <View style={styles.titleRow}>
           <Text style={styles.title} numberOfLines={1}>{title}</Text>
           {rating > 0 && (

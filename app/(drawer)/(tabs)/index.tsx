@@ -6,6 +6,7 @@ import { ThemedText } from "@/components/themed-text";
 import CategorySlider from "@/components/home/CategorySlider";
 import ProductCard from "@/components/ui/ProductCard";
 import { BASE_URL } from "@/constants/config";
+import { useCartStore } from "@/store/cartStore";
 
 // Static images
 import image3 from "../../../assets/images/image3.jpeg";
@@ -31,6 +32,7 @@ interface Product {
   isPublished: boolean;
   isActive: boolean;
   stocks?: number; // Resolved from variant
+  variantId?: string; // Added to store the actual variant ID
 }
 
 interface ActiveSection {
@@ -44,23 +46,26 @@ export default function HomeScreen() {
   const [latestProducts, setLatestProducts] = useState<Product[]>([]);
   const [activeSections, setActiveSections] = useState<ActiveSection[]>([]);
   const [loading, setLoading] = useState(true);
+  const addToCart = useCartStore((state) => state.addToCart);
 
-  // Utility to fetch stocks for a list of products
+  // Utility to fetch stocks and variant details for a list of products
   const resolveStocks = async (products: Product[]) => {
     return await Promise.all(
       products.map(async (prod) => {
         let stockValue = 0;
+        let variantId = "";
         if (prod.default_slug) {
           try {
             const res = await axios.get(`${BASE_URL}/variants/slug/${prod.default_slug}`);
             if (res.data?.data?.currentVariant) {
               stockValue = res.data.data.currentVariant.stocks;
+              variantId = res.data.data.currentVariant._id;
             }
           } catch (e) {
             console.log(`Stock resolution failed for ${prod.default_slug}`);
           }
         }
-        return { ...prod, stocks: stockValue };
+        return { ...prod, stocks: stockValue, variantId };
       })
     );
   };
@@ -101,6 +106,24 @@ export default function HomeScreen() {
     return `₹${price.toLocaleString()}`;
   };
 
+  const handleAddToCart = (product: Product) => {
+    if (!product.variantId) {
+      console.warn("Cannot add to cart: variantId missing for product", product.title);
+      return;
+    }
+
+    addToCart(product.variantId, {
+      _id: product._id,
+      title: product.title,
+      image: product.coverImage?.url || "",
+      price: product.displayPrice,
+      mrp: product.displayMrp,
+      discount: product.displayDiscount,
+      categoryName: product.categoryId?.name,
+      stocks: product.stocks,
+    });
+  };
+
   const renderProductGrid = (products: Product[]) => (
     <View style={styles.productsGrid}>
       {products.slice(0, 6).map((product) => {
@@ -108,6 +131,8 @@ export default function HomeScreen() {
         return (
           <ProductCard
             key={product._id}
+            _id={product._id}
+            variantId={product.variantId}
             title={product.title}
             image={product.coverImage?.url || ""}
             price={formatPrice(product.displayPrice)}
@@ -116,8 +141,8 @@ export default function HomeScreen() {
             categoryName={product.categoryId?.name}
             rating={product.rating}
             isOutOfStock={isOutOfStock}
-            onPress={() => console.log("Product pressed:", product._id)}
-            onAddToCart={() => console.log("Add to cart:", product._id)}
+            slug={product.default_slug || product._id}
+            onAddToCart={() => handleAddToCart(product)}
             onWishlistToggle={() => console.log("Toggle wishlist:", product._id)}
           />
         );

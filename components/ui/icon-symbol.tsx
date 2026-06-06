@@ -20,9 +20,20 @@ const MAPPING = {
   'cart.fill': 'shopping-cart',
   'chevron.left.forwardslash.chevron.right': 'code',
   'chevron.right': 'chevron-right',
+  'chevron.left': 'chevron-left',
   'line.3.horizontal': 'menu',
   'magnifyingglass': 'search',
   'heart': 'favorite-border',
+  'phone.fill': 'phone',
+  'shield.fill': 'security',
+  'slider.horizontal.3': 'tune',
+  'chevron.down': 'expand-more',
+  'xmark': 'close',
+  'checkmark': 'check',
+  'plus': 'add',
+  'minus': 'remove',
+  'trash.fill': 'delete',
+  'cart': 'shopping-cart',
 } as IconMapping;
 
 /**

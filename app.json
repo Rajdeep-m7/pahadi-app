@@ -7,7 +7,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "pahadiapp",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "ios": {
       "supportsTablet": true
     },
@@ -39,11 +39,12 @@
           }
         }
       ],
-      "expo-video"
+      "expo-video",
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true,
-      "reactCompiler": true
+      "reactCompiler": false
     }
   }
 }

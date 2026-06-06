@@ -5,7 +5,6 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 import { useCartStore } from '@/store/cartStore';
-import { useWishlistStore } from '@/store/wishlistStore';
 
 const GlobalToast = () => {
   const toast = useCartStore((state) => state.toast);
@@ -35,17 +34,11 @@ export const unstable_settings = {
 };
 
 export default function RootLayout() {
-  const initializeCart = useCartStore((state) => state.fetchAndMerge);
-  const cartHydrated = useCartStore((state) => state._hasHydrated);
-  const wishlistHydrated = useWishlistStore((state) => state._hasHydrated);
+  const initializeCart = useCartStore((state) => state.initializeCart);
 
   useEffect(() => {
-    // Only fetch from backend once local data is safely loaded (hydrated)
-    if (cartHydrated && wishlistHydrated) {
-      console.log('App hydrated, initializing data from backend...');
-      initializeCart();
-    }
-  }, [cartHydrated, wishlistHydrated]);
+    initializeCart();
+  }, []);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

@@ -3,8 +3,11 @@ import React from "react";
 
 import { HapticTab } from "@/components/haptic-tab";
 import { IconSymbol } from "@/components/ui/icon-symbol";
+import { useCartStore } from "@/store/cartStore";
 
 export default function TabLayout() {
+  const cartItemCount = useCartStore((state) => state.items.length);
+
   return (
     <Tabs
       screenOptions={{
@@ -52,6 +55,12 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="cart.fill" color={color} />
           ),
+          tabBarBadge: cartItemCount > 0 ? cartItemCount : undefined,
+          tabBarBadgeStyle: {
+            backgroundColor: '#ef4444',
+            color: '#fff',
+            fontSize: 10,
+          },
         }}
       />
     </Tabs>

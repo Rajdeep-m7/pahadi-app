@@ -5,6 +5,7 @@ import axios from 'axios';
 import { BASE_URL } from '@/constants/config';
 import ProductCard from '@/components/ui/ProductCard';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useCartStore } from '@/store/cartStore';
 
 interface Product {
   _id: string;
@@ -19,6 +20,7 @@ interface Product {
   isPublished: boolean;
   isActive: boolean;
   stocks?: number;
+  variantId?: string;
 }
 
 interface Category {
@@ -43,23 +45,26 @@ export default function CategoryPage() {
   // Modals
   const [sortModalVisible, setSortModalVisible] = useState(false);
   const [filterModalVisible, setFilterModalVisible] = useState(false);
+  const addToCart = useCartStore((state) => state.addToCart);
 
   // Resolve stocks utility (matches Home screen logic)
   const resolveStocks = async (products: Product[]) => {
     return await Promise.all(
       products.map(async (prod) => {
         let stockValue = 0;
+        let variantId = "";
         if (prod.default_slug) {
           try {
             const res = await axios.get(`${BASE_URL}/variants/slug/${prod.default_slug}`);
             if (res.data?.data?.currentVariant) {
               stockValue = res.data.data.currentVariant.stocks;
+              variantId = res.data.data.currentVariant._id;
             }
           } catch (e) {
             console.log(`Stock resolution failed for ${prod.default_slug}`);
           }
         }
-        return { ...prod, stocks: stockValue };
+        return { ...prod, stocks: stockValue, variantId };
       })
     );
   };
@@ -134,6 +139,24 @@ export default function CategoryPage() {
 
   const formatPrice = (price: number) => `₹${price.toLocaleString()}`;
 
+  const handleAddToCart = (product: Product) => {
+    if (!product.variantId) {
+      console.warn("Cannot add to cart: variantId missing for product", product.title);
+      return;
+    }
+
+    addToCart(product.variantId, {
+      _id: product._id,
+      title: product.title,
+      image: product.coverImage?.url || "",
+      price: product.displayPrice,
+      mrp: product.displayMrp,
+      discount: product.displayDiscount,
+      categoryName: product.categoryId?.name,
+      stocks: product.stocks,
+    });
+  };
+
   const sortOptions = [
     { label: 'Latest', value: 'latest' },
     { label: 'Price: Low to High', value: 'lowToHigh' },
@@ -200,6 +223,8 @@ export default function CategoryPage() {
             const isOutOfStock = (item.stocks !== undefined && item.stocks <= 0) || !item.isActive;
             return (
               <ProductCard
+                _id={item._id}
+                variantId={item.variantId}
                 image={item.coverImage?.url || ""}
                 title={item.title}
                 price={formatPrice(item.displayPrice)}
@@ -208,8 +233,8 @@ export default function CategoryPage() {
                 categoryName={item.categoryId?.name}
                 rating={item.rating}
                 isOutOfStock={isOutOfStock}
-                onPress={() => console.log("Product pressed:", item._id)}
-                onAddToCart={() => console.log("Add to cart:", item._id)}
+                slug={item.default_slug || item._id}
+                onAddToCart={() => handleAddToCart(item)}
                 onWishlistToggle={() => console.log("Toggle wishlist:", item._id)}
               />
             );

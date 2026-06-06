@@ -92,6 +92,13 @@ export default function DrawerLayout() {
           title: 'Home',
         }}
       />
+      <Drawer.Screen
+        name="wishlist"
+        options={{
+          drawerItemStyle: { display: 'none' },
+          title: 'Wishlist',
+        }}
+      />
     </Drawer>
   );
 }
