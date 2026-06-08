@@ -34,6 +34,11 @@ const MAPPING = {
   'minus': 'remove',
   'trash.fill': 'delete',
   'cart': 'shopping-cart',
+  'list.bullet.rectangle': 'view-list',
+  'star.fill': 'star',
+  'mappin.and.ellipse': 'location-on',
+  'person.fill': 'person',
+  'xmark.circle.fill': 'cancel',
 } as IconMapping;
 
 /**

@@ -13,10 +13,10 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import axios from 'axios';
-import * as SecureStore from 'expo-secure-store';
 import { BASE_URL } from '@/constants/config';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useCartStore } from '@/store/cartStore';
+import { useAuthStore } from '@/store/authStore';
 
 export default function LoginScreen() {
   const [phone, setPhone] = useState('');
@@ -25,7 +25,10 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
-  const syncCart = useCartStore((state) => state.syncCartWithBackend);
+  
+  const syncCart = useCartStore((state) => state.syncToBackend);
+  const setTokens = useAuthStore((state) => state.setTokens);
+  const refreshProfile = useAuthStore((state) => state.refreshProfile);
 
   const normalizePhone = (val: string) => val.replace(/\D/g, '').slice(0, 10);
 
@@ -60,16 +63,26 @@ export default function LoginScreen() {
     setError('');
 
     try {
-      const response = await axios.post(`${BASE_URL}/auth/login/verify`, {
-        phone,
-        otp: otp.trim(),
-      });
+      const response = await axios.post(`${BASE_URL}/auth/login/verify`, 
+        {
+          phone,
+          otp: otp.trim(),
+        }, 
+        {
+          headers: { 'x-client-type': 'mobile' }
+        }
+      );
       
       const { data } = response.data;
-      const token = response.data.accessToken || data.accessToken;
+      const accessToken = response.data.accessToken || data.accessToken;
+      const refreshToken = response.data.refreshToken || data.refreshToken;
       
-      if (token) {
-        await SecureStore.setItemAsync('userToken', token);
+      if (accessToken && refreshToken) {
+        // Set both tokens in global store and SecureStore
+        await setTokens(accessToken, refreshToken);
+        
+        // Fetch profile details
+        await refreshProfile();
         
         // Sync local cart with backend after login
         try {
@@ -80,7 +93,7 @@ export default function LoginScreen() {
 
         router.replace('/(drawer)/(tabs)/profile');
       } else {
-        throw new Error('No access token received.');
+        throw new Error('Access or refresh token missing from response.');
       }
     } catch (err: any) {
       setError(err.response?.data?.message || 'Invalid OTP. Please try again.');

@@ -33,8 +33,8 @@ export default function ProductCard({
   price,
   oldPrice,
   discount,
-  categoryName = '22KT Gold Jewellery',
-  rating = 0,
+  categoryName,
+  rating ,
   isOutOfStock = false,
   attributes,
   slug,
@@ -116,15 +116,13 @@ export default function ProductCard({
         
         <View style={styles.titleRow}>
           <Text style={styles.title} numberOfLines={1}>{title}</Text>
-          {rating > 0 && (
-            <View style={styles.ratingBadge}>
-              <Text style={styles.ratingText}>{rating}</Text>
-              <Text style={styles.starIcon}>★</Text>
-            </View>
-          )}
+          <View style={styles.ratingBadge}>
+            <Text style={styles.ratingText}>{Number(rating || 0).toFixed(1)}</Text>
+            <IconSymbol name="star.fill" size={10} color="#16a34a" />
+          </View>
         </View>
 
-        <Text style={styles.category} numberOfLines={1}>{categoryName}</Text>
+        {categoryName ? <Text style={styles.category} numberOfLines={1}>{categoryName}</Text> : null}
 
         {/* Attributes (e.g., Size, Weight) */}
         {attributes && Object.keys(attributes).length > 0 && (
@@ -141,9 +139,12 @@ export default function ProductCard({
         <View style={styles.pricingRow}>
           <Text style={styles.price}>{price}</Text>
           {oldPrice && <Text style={styles.oldPrice}>{oldPrice}</Text>}
-          {discount && <Text style={styles.discountText}>{discount} OFF</Text>}
+          {discount && (
+          <View style={styles.centerDiscountContainer}>
+            <Text style={styles.discountText}>{discount} OFF</Text>
+          </View>
+        )}
         </View>
-        
 
         {/* Action Button */}
         {!isOutOfStock ? (
@@ -220,14 +221,9 @@ const styles = StyleSheet.create({
     width: 30,
     height: 30,
     borderRadius: 15,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 3,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
   },
   detailsContainer: {
     padding: 10,
@@ -307,6 +303,9 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '700',
     color: '#16a34a',
+  },
+  centerDiscountContainer: {
+    alignItems: 'center',
     marginBottom: 10,
   },
   addButton: {

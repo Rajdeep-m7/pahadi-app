@@ -10,6 +10,7 @@ import {
   Text,
   TouchableOpacity
 } from "react-native";
+import { router } from "expo-router";
 import { BASE_URL } from "../../constants/config";
 
 const { width } = Dimensions.get("window");
@@ -18,6 +19,7 @@ const ITEM_WIDTH = width / 3;
 interface Category {
   _id: string;
   name: string;
+  slug: string;
   imageUrl?: string;
   iconUrl?: string;
 }
@@ -69,6 +71,10 @@ export default function CategorySlider() {
     isAutoPlay.current = true;
   };
 
+  const handleCategoryPress = (category: Category) => {
+    router.push(`/category/${category.slug || category._id}`);
+  };
+
   return (
     <View style={styles.container}>
       <Text style={styles.sectionTitle}>Shop by Category</Text>
@@ -85,7 +91,7 @@ export default function CategorySlider() {
         onScrollEndDrag={onScrollEndDrag}
         contentContainerStyle={styles.listContent}
         renderItem={({ item }) => (
-          <TouchableOpacity style={styles.slide}>
+          <TouchableOpacity style={styles.slide} onPress={() => handleCategoryPress(item)}>
             <View style={styles.imageContainer}>
               <Image 
                 source={{ uri: item.imageUrl || item.iconUrl || 'https://via.placeholder.com/150' }} 

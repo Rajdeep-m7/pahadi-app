@@ -1,5 +1,5 @@
-import React from 'react';
-import { View, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import React, { useState } from 'react';
+import { View, StyleSheet, TouchableOpacity, Image, TextInput, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DrawerActions } from '@react-navigation/native';
 import { router, useNavigation, usePathname } from 'expo-router';
@@ -11,14 +11,56 @@ export function CustomHeader() {
   const navigation = useNavigation();
   const pathname = usePathname();
   const themeColors = Colors['light'];
+  
+  const [isSearchActive, setIsSearchActive] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Check if we're on a sub-page (not one of the main tabs)
-  const isSubPage = pathname.includes('/product/') || pathname.includes('/category/');
+  const isSubPage = pathname.includes('/product/') || pathname.includes('/profile/');
   const canGoBack = router.canGoBack() && isSubPage;
 
   const handleWishlist = () => {
     router.push('/(drawer)/wishlist');
   };
+
+  const handleSearchSubmit = () => {
+    if (searchQuery.trim()) {
+      router.push({
+        pathname: '/(drawer)/search',
+        params: { q: searchQuery.trim() }
+      });
+      setIsSearchActive(false);
+      setSearchQuery('');
+    }
+  };
+
+  if (isSearchActive) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top, backgroundColor: themeColors.background }]}>
+        <View style={styles.content}>
+          <View style={styles.searchBarHeader}>
+            <TouchableOpacity onPress={() => setIsSearchActive(false)} style={styles.iconButton}>
+              <IconSymbol name="chevron.left" size={28} color={themeColors.text} />
+            </TouchableOpacity>
+            <TextInput
+              style={styles.headerSearchInput}
+              placeholder="Search products..."
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              onSubmitEditing={handleSearchSubmit}
+              autoFocus
+              placeholderTextColor="#9ca3af"
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity onPress={() => setSearchQuery('')}>
+                <IconSymbol name="xmark.circle.fill" size={20} color="#9ca3af" />
+              </TouchableOpacity>
+            )}
+          </View>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { paddingTop: insets.top, backgroundColor: themeColors.background }]}>
@@ -47,7 +89,7 @@ export function CustomHeader() {
         </View>
 
         <View style={styles.rightIcons}>
-          <TouchableOpacity style={styles.iconButton}>
+          <TouchableOpacity style={styles.iconButton} onPress={() => setIsSearchActive(true)}>
             <IconSymbol name="magnifyingglass" size={30} color={themeColors.text} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.iconButton} onPress={handleWishlist}>
@@ -83,5 +125,21 @@ const styles = StyleSheet.create({
     height: 50,
     marginRight: 10,
     marginLeft: 5,
+  },
+  searchBarHeader: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f3f4f6',
+    borderRadius: 12,
+    paddingRight: 10,
+    height: 44,
+  },
+  headerSearchInput: {
+    flex: 1,
+    fontSize: 16,
+    color: '#111827',
+    fontWeight: '500',
+    paddingVertical: Platform.OS === 'ios' ? 10 : 5,
   },
 });

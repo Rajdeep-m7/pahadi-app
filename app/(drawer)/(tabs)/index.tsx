@@ -128,6 +128,14 @@ export default function HomeScreen() {
     <View style={styles.productsGrid}>
       {products.slice(0, 6).map((product) => {
         const isOutOfStock = (product.stocks !== undefined && product.stocks <= 0) || !product.isActive;
+        
+        // Calculate discount if missing but mrp > price
+        let discountStr = product.displayDiscount ? `${product.displayDiscount}%` : undefined;
+        if (!discountStr && product.displayMrp && product.displayMrp > product.displayPrice) {
+          const calculated = Math.round(((product.displayMrp - product.displayPrice) / product.displayMrp) * 100);
+          if (calculated > 0) discountStr = `${calculated}%`;
+        }
+
         return (
           <ProductCard
             key={product._id}
@@ -137,7 +145,7 @@ export default function HomeScreen() {
             image={product.coverImage?.url || ""}
             price={formatPrice(product.displayPrice)}
             oldPrice={product.displayMrp ? formatPrice(product.displayMrp) : undefined}
-            discount={product.displayDiscount ? `${product.displayDiscount}%` : undefined}
+            discount={discountStr}
             categoryName={product.categoryId?.name}
             rating={product.rating}
             isOutOfStock={isOutOfStock}

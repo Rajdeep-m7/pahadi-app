@@ -36,7 +36,7 @@ export default function CategoryPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [allCategories, setAllCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
-  const [categoryName, setCategoryName] = useState('Category');
+  const [categoryName, setCategoryName] = useState('');
 
   // Filters & Sorting State
   const [sortBy, setSortBy] = useState<SortOption>('latest');
@@ -221,6 +221,14 @@ export default function CategoryPage() {
           columnWrapperStyle={styles.columnWrapper}
           renderItem={({ item }) => {
             const isOutOfStock = (item.stocks !== undefined && item.stocks <= 0) || !item.isActive;
+
+            // Calculate discount if missing but mrp > price
+            let discountStr = item.displayDiscount ? `${item.displayDiscount}%` : undefined;
+            if (!discountStr && item.displayMrp && item.displayMrp > item.displayPrice) {
+              const calculated = Math.round(((item.displayMrp - item.displayPrice) / item.displayMrp) * 100);
+              if (calculated > 0) discountStr = `${calculated}%`;
+            }
+
             return (
               <ProductCard
                 _id={item._id}
@@ -229,7 +237,7 @@ export default function CategoryPage() {
                 title={item.title}
                 price={formatPrice(item.displayPrice)}
                 oldPrice={item.displayMrp ? formatPrice(item.displayMrp) : undefined}
-                discount={item.displayDiscount ? `${item.displayDiscount}%` : undefined}
+                discount={discountStr}
                 categoryName={item.categoryId?.name}
                 rating={item.rating}
                 isOutOfStock={isOutOfStock}

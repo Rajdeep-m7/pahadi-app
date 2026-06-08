@@ -6,6 +6,7 @@ import { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 import { useCartStore } from '@/store/cartStore';
 import { useWishlistStore } from '@/store/wishlistStore';
+import { useAuthStore } from '@/store/authStore';
 
 const GlobalToast = () => {
   const toast = useCartStore((state) => state.toast);
@@ -38,14 +39,21 @@ export default function RootLayout() {
   const initializeCart = useCartStore((state) => state.fetchAndMerge);
   const cartHydrated = useCartStore((state) => state._hasHydrated);
   const wishlistHydrated = useWishlistStore((state) => state._hasHydrated);
+  const initializeAuth = useAuthStore((state) => state.initialize);
+  const authInitialized = useAuthStore((state) => state.isInitialized);
 
   useEffect(() => {
-    // Only fetch from backend once local data is safely loaded (hydrated)
-    if (cartHydrated && wishlistHydrated) {
-      console.log('App hydrated, initializing data from backend...');
+    // Initialize Auth first
+    initializeAuth();
+  }, []);
+
+  useEffect(() => {
+    // Only fetch from backend once EVERYTHING is ready
+    if (cartHydrated && wishlistHydrated && authInitialized) {
+      console.log('App ready: Hydrated and Authenticated. Syncing data...');
       initializeCart();
     }
-  }, [cartHydrated, wishlistHydrated]);
+  }, [cartHydrated, wishlistHydrated, authInitialized]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>

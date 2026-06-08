@@ -7,10 +7,12 @@ import { Image, Text, View, StyleSheet } from 'react-native';
 import { DrawerContentScrollView, DrawerItemList, DrawerItem } from '@react-navigation/drawer';
 import { Colors } from '@/constants/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { router } from 'expo-router';
 
 interface Category {
   _id: string;
   name: string;
+  slug: string;
   iconUrl?: string;
 }
 
@@ -39,7 +41,7 @@ function CustomDrawerContent(props: any) {
             key={category._id}
             label={category.name}
             onPress={() => {
-              console.log('Navigate to category:', category._id);
+              router.push(`/category/${category.slug || category._id}`);
             }}
             icon={() => (
               <Image
@@ -97,6 +99,13 @@ export default function DrawerLayout() {
         options={{
           drawerItemStyle: { display: 'none' },
           title: 'Wishlist',
+        }}
+      />
+      <Drawer.Screen
+        name="search"
+        options={{
+          drawerItemStyle: { display: 'none' },
+          title: 'Search Results',
         }}
       />
     </Drawer>
