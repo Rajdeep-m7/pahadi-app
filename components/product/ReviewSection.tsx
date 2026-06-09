@@ -117,7 +117,7 @@ export default function ReviewSection({ productId }: ReviewSectionProps) {
                   ))}
                 </View>
               </View>
-              <Text style={styles.comment}>"{review.comment}"</Text>
+              <Text style={styles.comment}>&quot;{review.comment}&quot;</Text>
               {review.images && review.images.length > 0 && (
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.imageScroll}>
                   {review.images.map((img, idx) => (

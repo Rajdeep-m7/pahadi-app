@@ -1,16 +1,20 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, Image, TextInput, Platform } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Image, TextInput, Platform, Text } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DrawerActions } from '@react-navigation/native';
 import { router, useNavigation, usePathname } from 'expo-router';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Colors } from '@/constants/theme';
+import { useWishlistStore } from '@/store/wishlistStore';
 
 export function CustomHeader() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const pathname = usePathname();
   const themeColors = Colors['light'];
+  
+  const wishlistItems = useWishlistStore((state) => state.items);
+  const wishlistCount = wishlistItems ? wishlistItems.length : 0;
   
   const [isSearchActive, setIsSearchActive] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -93,7 +97,14 @@ export function CustomHeader() {
             <IconSymbol name="magnifyingglass" size={30} color={themeColors.text} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.iconButton} onPress={handleWishlist}>
-            <IconSymbol name="heart" size={30} color={themeColors.text} />
+            <View>
+              <IconSymbol name="heart" size={30} color={themeColors.text} />
+              {wishlistCount > 0 && (
+                <View style={styles.badgeContainer}>
+                  <Text style={styles.badgeText}>{wishlistCount}</Text>
+                </View>
+              )}
+            </View>
           </TouchableOpacity>
         </View>
       </View>
@@ -141,5 +152,21 @@ const styles = StyleSheet.create({
     color: '#111827',
     fontWeight: '500',
     paddingVertical: Platform.OS === 'ios' ? 10 : 5,
+  },
+  badgeContainer: {
+    position: 'absolute',
+    right: -6,
+    top: -6,
+    backgroundColor: '#ef4444',
+    borderRadius: 9,
+    width: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
 });

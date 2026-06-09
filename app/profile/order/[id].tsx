@@ -50,6 +50,36 @@ const ORDER_STATUS_LABELS: Record<string, string> = {
   payment_expired: 'Payment Expired',
 };
 
+const getItemPolicyInfo = (item: any, orderCreatedAt: string, statusHistory: any[]) => {
+  const productObj = typeof item.productId === 'object' ? item.productId : null;
+  const returnPolicyType = (productObj?.returnPolicyType || item.snapshot?.returnPolicyType || item.returnPolicyType || 'none').toLowerCase();
+  const returnWindowDays = Number(productObj?.returnWindowDays || item.snapshot?.returnWindowDays || item.returnWindowDays || 0);
+
+  const deliveredEntry = statusHistory?.find(h => h.status === 'delivered');
+  const deliveredDate = deliveredEntry ? new Date(deliveredEntry.createdAt || deliveredEntry.date || deliveredEntry.timestamp) : new Date(orderCreatedAt);
+  
+  const diffTime = Math.max(0, Date.now() - deliveredDate.getTime());
+  const daysSinceDelivery = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+  const isExpired = daysSinceDelivery > returnWindowDays;
+  
+  const expiryDate = new Date(deliveredDate.getTime() + returnWindowDays * 24 * 60 * 60 * 1000);
+
+  const canReturn = !isExpired && (returnPolicyType === 'return' || returnPolicyType === 'both');
+  const canReplace = !isExpired && (returnPolicyType === 'replacement' || returnPolicyType === 'replace' || returnPolicyType === 'both');
+  const canRequest = (canReturn || canReplace) && !isExpired && returnPolicyType !== 'none';
+
+  return {
+    returnPolicyType,
+    returnWindowDays,
+    daysSinceDelivery,
+    isExpired,
+    expiryDate,
+    canReturn,
+    canReplace,
+    canRequest
+  };
+};
+
 export default function OrderDetailsScreen() {
   const { id } = useLocalSearchParams();
   const [order, setOrder] = useState<OrderDetail | null>(null);
@@ -66,6 +96,10 @@ export default function OrderDetailsScreen() {
   const [returnType, setReturnType] = useState<'return' | 'replace'>('return');
   const [returnReason, setReturnReason] = useState('');
   const [returnComment, setReturnComment] = useState('');
+
+  const selectedItemPolicy = selectedItem && order
+    ? getItemPolicyInfo(selectedItem, order.createdAt, order.statusHistory)
+    : null;
 
   useEffect(() => {
     fetchOrderDetails();
@@ -262,16 +296,44 @@ export default function OrderDetailsScreen() {
                   <View style={styles.itemPriceRow}>
                     <Text style={styles.itemPrice}>₹{item.price.toLocaleString()}</Text>
                     
-                    {order.orderStatus === 'delivered' && item.itemStatus === 'active' && (
-                      <TouchableOpacity 
-                        onPress={() => {
-                          setSelectedItem(item);
-                          setShowReturnModal(true);
-                        }}
-                      >
-                        <Text style={styles.returnLink}>Return/Replace</Text>
-                      </TouchableOpacity>
-                    )}
+                    {order.orderStatus === 'delivered' && item.itemStatus === 'active' && (() => {
+                      const policy = getItemPolicyInfo(item, order.createdAt, order.statusHistory);
+                      return (
+                        <View style={{ flexDirection: 'row', gap: 12, alignItems: 'center' }}>
+                          <TouchableOpacity 
+                            onPress={() => {
+                              const pName = encodeURIComponent(item.snapshot?.title || item.title);
+                              const pId = typeof item.productId === 'object' && item.productId ? item.productId._id : item.productId;
+                              router.push(`/profile/review-form?productId=${pId}&productName=${pName}`);
+                            }}
+                          >
+                            <Text style={[styles.returnLink, { color: '#f59e0b' }]}>Write Review</Text>
+                          </TouchableOpacity>
+
+                          {policy.canRequest ? (
+                            <TouchableOpacity 
+                              onPress={() => {
+                                setSelectedItem(item);
+                                if (policy.canReturn) {
+                                  setReturnType('return');
+                                } else if (policy.canReplace) {
+                                  setReturnType('replace');
+                                }
+                                setShowReturnModal(true);
+                              }}
+                            >
+                              <Text style={styles.returnLink}>Return/Replace</Text>
+                            </TouchableOpacity>
+                          ) : (
+                            <Text style={styles.policyClosedText}>
+                              {policy.returnPolicyType === 'none' 
+                                ? 'Non-returnable' 
+                                : 'Return expired'}
+                            </Text>
+                          )}
+                        </View>
+                      );
+                    })()}
                     {item.itemStatus !== 'active' && (
                       <View style={styles.itemStatusBadge}>
                         <Text style={styles.itemStatusText}>{item.itemStatus.replace(/_/g, ' ').toUpperCase()}</Text>
@@ -395,21 +457,29 @@ export default function OrderDetailsScreen() {
                 </View>
               )}
 
-              <Text style={styles.inputLabel}>What do you want?</Text>
-              <View style={styles.typeSelector}>
-                <TouchableOpacity 
-                  style={[styles.typeBtn, returnType === 'return' && styles.typeBtnActive]} 
-                  onPress={() => setReturnType('return')}
-                >
-                  <Text style={[styles.typeBtnText, returnType === 'return' && styles.typeBtnTextActive]}>Return & Refund</Text>
-                </TouchableOpacity>
-                <TouchableOpacity 
-                  style={[styles.typeBtn, returnType === 'replace' && styles.typeBtnActive]} 
-                  onPress={() => setReturnType('replace')}
-                >
-                  <Text style={[styles.typeBtnText, returnType === 'replace' && styles.typeBtnTextActive]}>Replacement</Text>
-                </TouchableOpacity>
-              </View>
+              {selectedItemPolicy && (
+                <>
+                  <Text style={styles.inputLabel}>What do you want?</Text>
+                  <View style={styles.typeSelector}>
+                    {selectedItemPolicy.canReturn && (
+                      <TouchableOpacity 
+                        style={[styles.typeBtn, returnType === 'return' && styles.typeBtnActive]} 
+                        onPress={() => setReturnType('return')}
+                      >
+                        <Text style={[styles.typeBtnText, returnType === 'return' && styles.typeBtnTextActive]}>Return & Refund</Text>
+                      </TouchableOpacity>
+                    )}
+                    {selectedItemPolicy.canReplace && (
+                      <TouchableOpacity 
+                        style={[styles.typeBtn, returnType === 'replace' && styles.typeBtnActive]} 
+                        onPress={() => setReturnType('replace')}
+                      >
+                        <Text style={[styles.typeBtnText, returnType === 'replace' && styles.typeBtnTextActive]}>Replacement</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                </>
+              )}
 
               <Text style={styles.inputLabel}>Reason for Request</Text>
               <TextInput
@@ -610,6 +680,11 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#b45309',
     textDecorationLine: 'underline',
+  },
+  policyClosedText: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: '#94a3b8',
   },
   itemStatusBadge: {
     backgroundColor: '#f1f5f9',

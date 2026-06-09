@@ -2,12 +2,12 @@ import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   FlatList,
-  Image,
   Dimensions,
   StyleSheet,
   NativeSyntheticEvent,
   NativeScrollEvent,
 } from "react-native";
+import { Image } from "expo-image";
 import { BASE_URL } from "../../constants/config";
 
 const { width } = Dimensions.get("window");
@@ -36,7 +36,6 @@ export default function HeroSlider() {
     fetch(`${BASE_URL}/storefront/`)
       .then((res) => res.json())
       .then((banners) => {
-        console.log("Fetched Banners:", banners);
         setBanners(banners.data.banners);
       })
       .catch((err) => console.error("Error fetching banners:", err));
@@ -79,7 +78,7 @@ export default function HeroSlider() {
       <FlatList
         ref={flatListRef}
         data={banners}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item._id}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
@@ -88,7 +87,11 @@ export default function HeroSlider() {
         onScrollEndDrag={onScrollEndDrag}
         renderItem={({ item }) => (
           <View style={styles.slide}>
-            <Image source={{ uri: item.mobileImage.url }} style={styles.image} />
+            <Image 
+              source={{ uri: item.mobileImage.url }} 
+              style={styles.image} 
+              transition={null} 
+            />
           </View>
         )}
       />

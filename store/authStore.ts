@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from '@/utils/storage';
 import axios from 'axios';
 import { BASE_URL } from '@/constants/config';
 
@@ -76,7 +76,10 @@ axios.interceptors.response.use(
         const storedRefreshToken = await SecureStore.getItemAsync('userRefreshToken');
         if (!storedRefreshToken) throw new Error('No refresh token');
 
-        const { data } = await axios.post(`${BASE_URL}/auth/refresh`, 
+        // Use a clean axios instance to avoid sending the expired accessToken
+        // in the Authorization headers and to bypass the global interceptor.
+        const refreshInstance = axios.create();
+        const { data } = await refreshInstance.post(`${BASE_URL}/auth/refresh-token`, 
           { refreshToken: storedRefreshToken },
           { headers: { 'x-client-type': 'mobile' } }
         );
@@ -115,20 +118,45 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ token: accessToken, refreshToken, isAuthenticated: true });
   },
 
-  setUser: (user) => set({ user }),
+  setUser: (user) => {
+    if (user) {
+      SecureStore.setItemAsync('userProfile', JSON.stringify(user)).catch(() => {});
+    } else {
+      SecureStore.deleteItemAsync('userProfile').catch(() => {});
+    }
+    set({ user });
+  },
 
   initialize: async () => {
     try {
       const token = await SecureStore.getItemAsync('userToken');
       const refreshToken = await SecureStore.getItemAsync('userRefreshToken');
+      const storedUser = await SecureStore.getItemAsync('userProfile');
+      
+      let parsedUser = null;
+      if (storedUser) {
+        try {
+          parsedUser = JSON.parse(storedUser);
+        } catch (e) {}
+      }
+
       if (token && refreshToken) {
         updateAxiosHeader(token);
-        set({ token, refreshToken, isAuthenticated: true });
-        await get().refreshProfile();
+        set({ 
+          token, 
+          refreshToken, 
+          user: parsedUser, 
+          isAuthenticated: true, 
+          isInitialized: true 
+        });
+        
+        // Fetch profile in background to avoid blocking the UI
+        get().refreshProfile().catch(() => {});
+      } else {
+        set({ isInitialized: true });
       }
     } catch (error) {
       console.error('Auth initialization failed:', error);
-    } finally {
       set({ isInitialized: true });
     }
   },
@@ -144,6 +172,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
     await SecureStore.deleteItemAsync('userToken');
     await SecureStore.deleteItemAsync('userRefreshToken');
+    await SecureStore.deleteItemAsync('userProfile');
     updateAxiosHeader(null);
     set({ token: null, refreshToken: null, user: null, isAuthenticated: false });
   },
@@ -156,6 +185,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       const { data } = await axios.get(`${BASE_URL}/users/me`);
       if (data && data.data) {
         set({ user: data.data, isAuthenticated: true });
+        await SecureStore.setItemAsync('userProfile', JSON.stringify(data.data));
       }
     } catch (error: any) {
       // Interceptor will handle 401s

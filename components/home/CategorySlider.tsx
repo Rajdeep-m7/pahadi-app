@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   FlatList,
-  Image,
   Dimensions,
   StyleSheet,
   NativeSyntheticEvent,
@@ -10,6 +9,7 @@ import {
   Text,
   TouchableOpacity
 } from "react-native";
+import { Image } from "expo-image";
 import { router } from "expo-router";
 import { BASE_URL } from "../../constants/config";
 
@@ -34,7 +34,6 @@ export default function CategorySlider() {
     fetch(`${BASE_URL}/categories/`)
       .then((res) => res.json())
       .then((response) => {
-        console.log("Fetched categories:", response);
         setCategories(response.data || []);
       })
       .catch((err) => console.error("Error fetching categories:", err));
@@ -96,6 +95,7 @@ export default function CategorySlider() {
               <Image 
                 source={{ uri: item.imageUrl || item.iconUrl || 'https://via.placeholder.com/150' }} 
                 style={styles.image} 
+                transition={null}
               />
             </View>
             <Text style={styles.categoryName} numberOfLines={2}>{item.name}</Text>

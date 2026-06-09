@@ -125,20 +125,17 @@ export default function MyReviewsScreen() {
               </Text>
             </View>
 
-            <Text style={styles.commentText}>"{item.comment}"</Text>
+            <Text style={styles.commentText}>&quot;{item.comment}&quot;</Text>
 
             <View style={styles.actions}>
               <TouchableOpacity 
                 style={styles.actionBtn}
-                onPress={() => router.push({
-                  pathname: '/profile/review-form',
-                  params: {
-                    reviewId: item._id,
-                    productName: item.productId?.title,
-                    existingRating: item.rating.toString(),
-                    existingComment: item.comment
-                  }
-                })}
+                onPress={() => {
+                  const pName = encodeURIComponent(item.productId?.title || '');
+                  const comment = encodeURIComponent(item.comment || '');
+                  const imgs = encodeURIComponent(JSON.stringify(item.images || []));
+                  router.push(`/profile/review-form?reviewId=${item._id}&productName=${pName}&existingRating=${item.rating}&existingComment=${comment}&existingImages=${imgs}`);
+                }}
               >
                 <Text style={styles.editBtnText}>Edit Review</Text>
               </TouchableOpacity>
@@ -151,7 +148,7 @@ export default function MyReviewsScreen() {
         ListEmptyComponent={
           <View style={styles.empty}>
             <IconSymbol name="star.fill" size={60} color="#e5e7eb" />
-            <Text style={styles.emptyText}>You haven't written any reviews yet.</Text>
+            <Text style={styles.emptyText}>You haven&apos;t written any reviews yet.</Text>
             <TouchableOpacity style={styles.shopBtn} onPress={() => router.push('/profile/orders')}>
               <Text style={styles.shopBtnText}>Review Your Orders</Text>
             </TouchableOpacity>

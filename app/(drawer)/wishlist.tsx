@@ -1,14 +1,21 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, FlatList, SafeAreaView, TouchableOpacity, ActivityIndicator } from 'react-native';
-import { router, Stack } from 'expo-router';
+import { router, Stack, useFocusEffect } from 'expo-router';
 import { useWishlistStore } from '@/store/wishlistStore';
 import ProductCard from '@/components/ui/ProductCard';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { Fonts } from '@/constants/theme';
 
 export default function WishlistScreen() {
-  const { items, _hasHydrated, setHasHydrated } = useWishlistStore();
+  const { items, _hasHydrated, setHasHydrated, fetchWishlist } = useWishlistStore();
   const [isReady, setIsReady] = useState(false);
+
+  // Sync with backend every time screen is focused (navigated to)
+  useFocusEffect(
+    useCallback(() => {
+      fetchWishlist();
+    }, [fetchWishlist])
+  );
 
   useEffect(() => {
     // Check if hydrated on mount

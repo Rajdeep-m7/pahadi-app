@@ -6,49 +6,12 @@ import { useEffect, useRef } from 'react';
 import { Animated, StyleSheet, Text, View } from 'react-native';
 import { useCartStore } from '@/store/cartStore';
 
-const GlobalToast = () => {
-  const toast = useCartStore((state) => state.toast);
-  const opacity = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    if (toast?.visible) {
-      Animated.sequence([
-        Animated.timing(opacity, { toValue: 1, duration: 300, useNativeDriver: true }),
-        Animated.delay(2000),
-        Animated.timing(opacity, { toValue: 0, duration: 300, useNativeDriver: true }),
-      ]).start();
-    }
-  }, [toast?.visible, toast?.message]);
-
-  if (!toast?.visible) return null;
-
-  return (
-    <Animated.View style={[styles.toastContainer, { opacity }]}>
-      <Text style={styles.toastText}>{toast.message}</Text>
-    </Animated.View>
-  );
-};
-
-export const unstable_settings = {
-  anchor: '(drawer)',
-};
-
 export default function RootLayout() {
-  const initializeCart = useCartStore((state) => state.initializeCart);
-
-  useEffect(() => {
-    initializeCart();
-  }, []);
-
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-        <Stack>
-          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-          <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
-          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+        <Stack screenOptions={{ headerShown: false }}>
+          <Stack.Screen name="index" />
         </Stack>
-        <GlobalToast />
-        <StatusBar style="auto" />
     </GestureHandlerRootView>
   );
 }

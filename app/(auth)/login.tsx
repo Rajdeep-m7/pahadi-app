@@ -96,7 +96,9 @@ export default function LoginScreen() {
         throw new Error('Access or refresh token missing from response.');
       }
     } catch (err: any) {
-      setError(err.response?.data?.message || 'Invalid OTP. Please try again.');
+      // Wait 10 seconds if OTP is wrong
+      await new Promise((resolve) => setTimeout(resolve, 10000));
+      setError(err.response?.data?.message || 'Wrong OTP. Please try again.');
     } finally {
       setLoading(false);
     }

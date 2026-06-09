@@ -103,56 +103,66 @@ export default function OrdersScreen() {
         data={filteredOrders}
         keyExtractor={(item) => item._id}
         contentContainerStyle={styles.listContent}
-        renderItem={({ item }) => (
-          <TouchableOpacity 
-            style={styles.orderCard} 
-            onPress={() => router.push(`/profile/order/${item._id}`)}
-          >
-            <View style={styles.cardHeader}>
-              <View>
-                <Text style={styles.orderId}>{item.orderId || `#${item._id.slice(-6).toUpperCase()}`}</Text>
-                <Text style={styles.orderDate}>
-                  {new Date(item.createdAt).toLocaleDateString('en-IN', {
-                    day: 'numeric',
-                    month: 'short',
-                    year: 'numeric',
-                  })}
-                </Text>
+        renderItem={({ item }) => {
+          const mainItemName = item.items[0]?.snapshot?.title || item.items[0]?.title || 'Order Item';
+          const additionalCount = item.items.length > 1 ? ` +${item.items.length - 1} more` : '';
+          
+          return (
+            <TouchableOpacity 
+              style={styles.orderCard} 
+              onPress={() => router.push(`/profile/order/${item._id}`)}
+            >
+              <View style={styles.cardHeader}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.productName} numberOfLines={1}>
+                    {mainItemName}{additionalCount}
+                  </Text>
+                  <Text style={styles.orderDate}>
+                    {new Date(item.createdAt).toLocaleDateString('en-IN', {
+                      day: 'numeric',
+                      month: 'short',
+                      year: 'numeric',
+                    })}
+                  </Text>
+                </View>
+                <View style={[styles.statusBadge, { backgroundColor: `${getStatusColor(item.orderStatus)}15` }]}>
+                  <Text style={[styles.statusText, { color: getStatusColor(item.orderStatus) }]}>
+                    {item.orderStatus.toUpperCase()}
+                  </Text>
+                </View>
               </View>
-              <View style={[styles.statusBadge, { backgroundColor: `${getStatusColor(item.orderStatus)}15` }]}>
-                <Text style={[styles.statusText, { color: getStatusColor(item.orderStatus) }]}>
-                  {item.orderStatus.toUpperCase()}
-                </Text>
-              </View>
-            </View>
 
-            <View style={styles.cardBody}>
-              <View style={styles.itemsPreview}>
-                {item.items.slice(0, 3).map((orderItem, idx) => (
-                  <Image 
-                    key={idx} 
-                    source={{ uri: orderItem.snapshot?.coverImage || orderItem.coverImage }} 
-                    style={styles.itemThumb} 
-                  />
-                ))}
-                {item.items.length > 3 && (
-                  <View style={styles.moreBadge}>
-                    <Text style={styles.moreText}>+{item.items.length - 3}</Text>
-                  </View>
-                )}
+              <View style={styles.cardBody}>
+                <View style={styles.itemsPreview}>
+                  {item.items.slice(0, 3).map((orderItem, idx) => (
+                    <Image 
+                      key={idx} 
+                      source={{ uri: orderItem.snapshot?.coverImage || orderItem.coverImage }} 
+                      style={styles.itemThumb} 
+                    />
+                  ))}
+                  {item.items.length > 3 && (
+                    <View style={styles.moreBadge}>
+                      <Text style={styles.moreText}>+{item.items.length - 3}</Text>
+                    </View>
+                  )}
+                </View>
+                <View style={styles.priceContainer}>
+                  <Text style={styles.totalLabel}>Total Amount</Text>
+                  <Text style={styles.totalPrice}>₹{item.totalAmount.toLocaleString()}</Text>
+                </View>
               </View>
-              <View style={styles.priceContainer}>
-                <Text style={styles.totalLabel}>Total Amount</Text>
-                <Text style={styles.totalPrice}>₹{item.totalAmount.toLocaleString()}</Text>
-              </View>
-            </View>
 
-            <View style={styles.cardFooter}>
-              <Text style={styles.viewDetails}>View Details</Text>
-              <IconSymbol name="chevron.right" size={16} color="#3b82f6" />
-            </View>
-          </TouchableOpacity>
-        )}
+              <View style={styles.cardFooter}>
+                <Text style={styles.orderIdText}>ID: {item.orderId || `#${item._id.slice(-6).toUpperCase()}`}</Text>
+                <View style={styles.viewDetailsContainer}>
+                  <Text style={styles.viewDetails}>View Details</Text>
+                  <IconSymbol name="chevron.right" size={16} color="#3b82f6" />
+                </View>
+              </View>
+            </TouchableOpacity>
+          );
+        }}
         ListEmptyComponent={
           <View style={styles.empty}>
             <IconSymbol name="list.bullet.rectangle" size={60} color="#e5e7eb" />
@@ -190,23 +200,24 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 16,
+    marginBottom: 12,
   },
-  orderId: {
+  productName: {
     fontSize: 16,
     fontWeight: 'bold',
     color: '#111827',
-    fontFamily: Fonts.rounded,
+    flex: 1,
+    marginRight: 10,
   },
   orderDate: {
     fontSize: 12,
     color: '#9ca3af',
-    marginTop: 2,
+    marginTop: 4,
     fontWeight: '600',
   },
   statusBadge: {
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: 4,
     borderRadius: 8,
   },
   statusText: {
@@ -218,7 +229,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 12,
+    paddingVertical: 6,
     borderTopWidth: 1,
     borderBottomWidth: 1,
     borderColor: '#f9fafb',
@@ -228,25 +239,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   itemThumb: {
-    width: 44,
-    height: 44,
-    borderRadius: 8,
+    width: 80,
+    height: 80,
+    borderRadius: 12,
     backgroundColor: '#f9fafb',
-    marginRight: -10,
+    marginRight: -15,
     borderWidth: 2,
     borderColor: '#fff',
   },
   moreBadge: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: '#f3f4f6',
     alignItems: 'center',
     justifyContent: 'center',
-    marginLeft: 15,
+    marginLeft: 20,
   },
   moreText: {
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: 'bold',
     color: '#6b7280',
   },
@@ -268,8 +279,17 @@ const styles = StyleSheet.create({
   cardFooter: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
     marginTop: 12,
+  },
+  orderIdText: {
+    fontSize: 12,
+    color: '#9ca3af',
+    fontWeight: '500',
+  },
+  viewDetailsContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: 4,
   },
   viewDetails: {

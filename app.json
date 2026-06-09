@@ -7,11 +7,11 @@
     "icon": "./assets/images/icon.png",
     "scheme": "pahadiapp",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": false,
     "ios": {
       "supportsTablet": true
     },
     "android": {
+      "package": "com.pahadi.collections",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -25,7 +25,9 @@
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
+    "newArchEnabled": false,
     "plugins": [
+      "./plugins/withRazorpay",
       "expo-router",
       [
         "expo-splash-screen",
@@ -40,11 +42,29 @@
         }
       ],
       "expo-video",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "buildToolsVersion": "35.0.0",
+            "minSdkVersion": 23,
+            "kotlinVersion": "2.0.21"
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": false
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "7183e851-70b0-4773-b07e-36562ae00d10"
+      }
     }
   }
 }

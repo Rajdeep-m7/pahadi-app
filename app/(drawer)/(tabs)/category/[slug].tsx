@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { View, StyleSheet, ActivityIndicator, FlatList, Text, TouchableOpacity, Modal, ScrollView, SafeAreaView } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, FlatList, Text, TouchableOpacity, Modal, ScrollView, SafeAreaView, TextInput } from 'react-native';
 import { useLocalSearchParams, Stack, router } from 'expo-router';
 import axios from 'axios';
 import { BASE_URL } from '@/constants/config';
@@ -40,7 +40,8 @@ export default function CategoryPage() {
 
   // Filters & Sorting State
   const [sortBy, setSortBy] = useState<SortOption>('latest');
-  const [maxPrice, setMaxPrice] = useState<number | null>(null);
+  const [minPrice, setMinPrice] = useState<string>('');
+  const [maxPrice, setMaxPrice] = useState<string>('');
   
   // Modals
   const [sortModalVisible, setSortModalVisible] = useState(false);
@@ -124,8 +125,14 @@ export default function CategoryPage() {
     let result = [...products];
 
     // Filter by Price
-    if (maxPrice !== null) {
-      result = result.filter(p => p.displayPrice <= maxPrice);
+    const min = parseFloat(minPrice);
+    const max = parseFloat(maxPrice);
+
+    if (!isNaN(min)) {
+      result = result.filter(p => p.displayPrice >= min);
+    }
+    if (!isNaN(max)) {
+      result = result.filter(p => p.displayPrice <= max);
     }
 
     result.sort((a, b) => {
@@ -135,7 +142,7 @@ export default function CategoryPage() {
     });
 
     return result;
-  }, [products, sortBy, maxPrice]);
+  }, [products, sortBy, minPrice, maxPrice]);
 
   const formatPrice = (price: number) => `₹${price.toLocaleString()}`;
 
@@ -243,7 +250,6 @@ export default function CategoryPage() {
                 isOutOfStock={isOutOfStock}
                 slug={item.default_slug || item._id}
                 onAddToCart={() => handleAddToCart(item)}
-                onWishlistToggle={() => console.log("Toggle wishlist:", item._id)}
               />
             );
           }}
@@ -285,19 +291,55 @@ export default function CategoryPage() {
           </View>
 
           <ScrollView style={styles.filterBody}>
-            <Text style={styles.filterSectionTitle}>Price</Text>
-            <View style={styles.pillContainer}>
-              {priceFilters.map(filter => (
-                <TouchableOpacity
-                  key={filter.label}
-                  style={[styles.pill, maxPrice === filter.value && styles.pillActive]}
-                  onPress={() => setMaxPrice(filter.value)}
-                >
-                  <Text style={[styles.pillText, maxPrice === filter.value && styles.pillTextActive]}>
-                    {filter.label}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+            <Text style={styles.filterSectionTitle}>Price Range</Text>
+            <View style={styles.rangeInputContainer}>
+              <View style={styles.rangeInputWrapper}>
+                <Text style={styles.rangeInputLabel}>Min</Text>
+                <TextInput
+                  style={styles.rangeInput}
+                  placeholder="₹0"
+                  value={minPrice}
+                  onChangeText={setMinPrice}
+                  keyboardType="numeric"
+                />
+              </View>
+              <View style={styles.rangeDivider} />
+              <View style={styles.rangeInputWrapper}>
+                <Text style={styles.rangeInputLabel}>Max</Text>
+                <TextInput
+                  style={styles.rangeInput}
+                  placeholder="₹100,000"
+                  value={maxPrice}
+                  onChangeText={setMaxPrice}
+                  keyboardType="numeric"
+                />
+              </View>
+            </View>
+
+            <View style={[styles.pillContainer, { marginTop: 15 }]}>
+              {priceFilters.map(filter => {
+                const isActive = (filter.value === null && minPrice === '' && maxPrice === '') || 
+                                (filter.value !== null && maxPrice === filter.value.toString() && minPrice === '');
+                return (
+                  <TouchableOpacity
+                    key={filter.label}
+                    style={[styles.pill, isActive && styles.pillActive]}
+                    onPress={() => {
+                      if (filter.value === null) {
+                        setMinPrice('');
+                        setMaxPrice('');
+                      } else {
+                        setMinPrice('');
+                        setMaxPrice(filter.value.toString());
+                      }
+                    }}
+                  >
+                    <Text style={[styles.pillText, isActive && styles.pillTextActive]}>
+                      {filter.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
 
             <View style={styles.filterDivider} />
@@ -343,7 +385,8 @@ export default function CategoryPage() {
             <TouchableOpacity 
               style={styles.clearBtn} 
               onPress={() => {
-                setMaxPrice(null);
+                setMinPrice('');
+                setMaxPrice('');
                 setFilterModalVisible(false);
                 router.replace(`/category/all-jewellery`);
               }}
@@ -540,6 +583,40 @@ const styles = StyleSheet.create({
   },
   pillTextActive: {
     color: '#fff',
+  },
+  rangeInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 5,
+  },
+  rangeInputWrapper: {
+    flex: 1,
+  },
+  rangeInputLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#9ca3af',
+    textTransform: 'uppercase',
+    marginBottom: 6,
+    marginLeft: 4,
+  },
+  rangeInput: {
+    backgroundColor: '#f9fafb',
+    borderWidth: 1.5,
+    borderColor: '#e5e7eb',
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  rangeDivider: {
+    width: 12,
+    height: 2,
+    backgroundColor: '#e5e7eb',
+    marginTop: 20,
   },
   filterDivider: {
     height: 1,

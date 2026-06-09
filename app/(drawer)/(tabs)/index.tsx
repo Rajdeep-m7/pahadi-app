@@ -74,7 +74,6 @@ export default function HomeScreen() {
     const fetchHomeData = async () => {
       try {
         const { data } = await axios.get(`${BASE_URL}/home`);
-        console.log("Fetched Home Data:", data);
         
         if (data && data.data) {
           // Process latest products
@@ -151,7 +150,6 @@ export default function HomeScreen() {
             isOutOfStock={isOutOfStock}
             slug={product.default_slug || product._id}
             onAddToCart={() => handleAddToCart(product)}
-            onWishlistToggle={() => console.log("Toggle wishlist:", product._id)}
           />
         );
       })}

@@ -58,7 +58,7 @@ export default function CartScreen() {
       );
       return;
     }
-    Alert.alert('Success', 'Proceeding to checkout...');
+    router.push('/checkout');
   };
 
   const formatPrice = (price: number) => {

@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
-import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from '@/utils/storage';
 import { BASE_URL } from '@/constants/config';
 
 // Handles variantId that may be a string, an object { _id: string }, or { $oid: string }

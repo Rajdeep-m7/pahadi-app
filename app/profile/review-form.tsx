@@ -5,25 +5,67 @@ import {
   StyleSheet,
   TextInput,
   TouchableOpacity,
-  SafeAreaView,
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  Image,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, Stack, useLocalSearchParams } from 'expo-router';
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
+import * as ImagePicker from 'expo-image-picker';
 import { BASE_URL } from '@/constants/config';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 
 export default function ReviewFormScreen() {
-  const { productId, productName, reviewId, existingRating, existingComment } = useLocalSearchParams();
+  const { productId, productName, reviewId, existingRating, existingComment, existingImages } = useLocalSearchParams();
   
   const [rating, setRating] = useState(Number(existingRating) || 5);
   const [comment, setComment] = useState((existingComment as string) || '');
+  
+  // Try to parse existing images if provided (usually a JSON string array of objects like {url, publicId})
+  const initialImages = (() => {
+    try {
+      if (existingImages) {
+        const parsed = JSON.parse(existingImages as string);
+        return Array.isArray(parsed) ? parsed : [];
+      }
+    } catch (e) {
+      console.log('Could not parse existing images', e);
+    }
+    return [];
+  })();
+
+  // We store both local URIs (strings) and server objects {url, publicId} in the same array for display
+  const [images, setImages] = useState<any[]>(initialImages);
   const [submitting, setSubmitting] = useState(false);
+
+  const pickImage = async () => {
+    if (images.length >= 3) {
+      Alert.alert('Limit Reached', 'You can only upload up to 3 photos.');
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [4, 4],
+      quality: 0.7,
+    });
+
+    if (!result.canceled && result.assets[0].uri) {
+      setImages([...images, result.assets[0].uri]);
+    }
+  };
+
+  const removeImage = (index: number) => {
+    const newImages = [...images];
+    newImages.splice(index, 1);
+    setImages(newImages);
+  };
 
   const handleSubmit = async () => {
     if (!comment.trim()) {
@@ -35,20 +77,63 @@ export default function ReviewFormScreen() {
     const token = await SecureStore.getItemAsync('userToken');
 
     try {
+      let payload: any;
+      let headers: any = { Authorization: `Bearer ${token}` };
+
+      // Check if we have any NEW local images (strings)
+      const hasNewLocalImages = images.some(img => typeof img === 'string');
+
+      if (hasNewLocalImages) {
+        payload = new FormData();
+        payload.append('rating', rating.toString());
+        payload.append('comment', comment);
+        
+        // Append existing server images back as JSON if we are editing
+        const oldImagesToKeep = images.filter(img => typeof img === 'object');
+        if (oldImagesToKeep.length > 0) {
+           oldImagesToKeep.forEach((img, i) => {
+               payload.append(`images[${i}][url]`, img.url);
+               payload.append(`images[${i}][publicId]`, img.publicId);
+           });
+        }
+        
+        // Append new files
+        images.forEach((img, index) => {
+          if (typeof img === 'string') {
+            const filename = img.split('/').pop() || `photo${index}.jpg`;
+            const match = /\.(\w+)$/.exec(filename);
+            const type = match ? `image/${match[1]}` : `image/jpeg`;
+            
+            payload.append('images', {
+              uri: Platform.OS === 'ios' ? img.replace('file://', '') : img,
+              name: filename,
+              type,
+            } as any);
+          }
+        });
+        
+        headers['Content-Type'] = 'multipart/form-data';
+      } else {
+        // Only text/rating changes or deleting photos without adding new ones
+        payload = { 
+          rating, 
+          comment, 
+          images: images.filter(img => typeof img === 'object') 
+        };
+      }
+
       if (reviewId) {
-        // Edit existing review
         await axios.patch(
           `${BASE_URL}/reviews/${reviewId}`,
-          { rating, comment },
-          { headers: { Authorization: `Bearer ${token}` } }
+          payload,
+          { headers }
         );
         Alert.alert('Success', 'Review updated successfully.');
       } else {
-        // Create new review
         await axios.post(
           `${BASE_URL}/reviews/product/${productId}`,
-          { rating, comment },
-          { headers: { Authorization: `Bearer ${token}` } }
+          payload,
+          { headers }
         );
         Alert.alert('Success', 'Review submitted successfully.');
       }
@@ -109,6 +194,30 @@ export default function ReviewFormScreen() {
             />
           </View>
 
+          <View style={styles.photoSection}>
+            <Text style={styles.label}>Photos (Max 3)</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.photoScroll}>
+              {images.map((img, index) => {
+                const uri = typeof img === 'string' ? img : img.url;
+                return (
+                  <View key={index} style={styles.photoContainer}>
+                    <Image source={{ uri }} style={styles.photoPreview} />
+                    <TouchableOpacity style={styles.removePhotoBtn} onPress={() => removeImage(index)}>
+                      <IconSymbol name="xmark.circle.fill" size={20} color="#ef4444" />
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
+              
+              {images.length < 3 && (
+                <TouchableOpacity style={styles.addPhotoBtn} onPress={pickImage}>
+                  <IconSymbol name="camera.fill" size={24} color="#9ca3af" />
+                  <Text style={styles.addPhotoText}>Add Photo</Text>
+                </TouchableOpacity>
+              )}
+            </ScrollView>
+          </View>
+
           <TouchableOpacity
             style={[styles.submitButton, submitting && styles.disabledButton]}
             onPress={handleSubmit}
@@ -135,7 +244,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     padding: 24,
-    gap: 32,
+    gap: 28,
   },
   label: {
     fontSize: 12,
@@ -183,6 +292,48 @@ const styles = StyleSheet.create({
     color: '#111827',
     minHeight: 120,
   },
+  photoSection: {
+    gap: 8,
+  },
+  photoScroll: {
+    flexDirection: 'row',
+    marginTop: 8,
+  },
+  photoContainer: {
+    position: 'relative',
+    marginRight: 12,
+  },
+  photoPreview: {
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+  },
+  removePhotoBtn: {
+    position: 'absolute',
+    top: -8,
+    right: -8,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+  },
+  addPhotoBtn: {
+    width: 80,
+    height: 80,
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#e5e7eb',
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#f9fafb',
+    gap: 4,
+  },
+  addPhotoText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#9ca3af',
+  },
   submitButton: {
     backgroundColor: '#111827',
     paddingVertical: 18,
@@ -193,6 +344,7 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
+    marginTop: 8,
   },
   disabledButton: {
     opacity: 0.7,

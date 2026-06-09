@@ -67,7 +67,6 @@ export default function DrawerLayout() {
         const { data } = await axios.get(`${BASE_URL}/categories`);
         if (data && data.data) {
           setCategories(data.data);
-          console.log("Fetched Categories:", data.data);
         }
       } catch (error) {
         console.error('Error fetching categories:', error);

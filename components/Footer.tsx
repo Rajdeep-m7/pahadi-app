@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Linking } from 'react-native';
+import { router } from 'expo-router';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import visa from "@/assets/images/image copy 8.png"
 import rupay from "@/assets/images/image copy 9.png"
@@ -43,19 +44,19 @@ export default function Footer() {
       <View style={styles.linksContainer}>
         <View style={styles.linkColumn}>
           <Text style={styles.columnTitle}>My Account</Text>
-          <Text style={styles.link}>Login / Register</Text>
-          <Text style={styles.link}>Wishlist</Text>
-          <Text style={styles.link}>My Cart</Text>
-          <Text style={styles.link}>Track Orders</Text>
-          <Text style={styles.link}>My Reviews</Text>
+          <TouchableOpacity onPress={() => router.push('/(auth)/login')}><Text style={styles.link}>Login / Register</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/(drawer)/wishlist')}><Text style={styles.link}>Wishlist</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/(drawer)/(tabs)/cart')}><Text style={styles.link}>My Cart</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/profile/orders')}><Text style={styles.link}>Track Orders</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/profile/reviews')}><Text style={styles.link}>My Reviews</Text></TouchableOpacity>
         </View>
         <View style={styles.linkColumn}>
           <Text style={styles.columnTitle}>Categories</Text>
-          <Text style={styles.link}>All Jewellery</Text>
-          <Text style={styles.link}>Mangalsutra</Text>
-          <Text style={styles.link}>Earrings</Text>
-          <Text style={styles.link}>Necklaces</Text>
-          <Text style={styles.link}>Rings</Text>
+          <TouchableOpacity onPress={() => router.push('/category/all-jewellery')}><Text style={styles.link}>All Jewellery</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/category/mangalsutra')}><Text style={styles.link}>Mangalsutra</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/category/earrings')}><Text style={styles.link}>Earrings</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/category/necklaces')}><Text style={styles.link}>Necklaces</Text></TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/category/rings')}><Text style={styles.link}>Rings</Text></TouchableOpacity>
         </View>
       </View>
 
@@ -104,13 +105,13 @@ export default function Footer() {
       {/* Copyright & Policies */}
       <View style={styles.bottomSection}>
         <View style={styles.policyRow}>
-          <Text style={styles.policyLink}>Terms</Text>
+          <TouchableOpacity onPress={() => router.push('/legal/terms')}><Text style={styles.policyLink}>Terms</Text></TouchableOpacity>
           <Text style={styles.separator}>|</Text>
-          <Text style={styles.policyLink}>Privacy</Text>
+          <TouchableOpacity onPress={() => router.push('/legal/privacy')}><Text style={styles.policyLink}>Privacy</Text></TouchableOpacity>
           <Text style={styles.separator}>|</Text>
-          <Text style={styles.policyLink}>Shipping</Text>
+          <TouchableOpacity onPress={() => router.push('/legal/shipping')}><Text style={styles.policyLink}>Shipping</Text></TouchableOpacity>
           <Text style={styles.separator}>|</Text>
-          <Text style={styles.policyLink}>Refund</Text>
+          <TouchableOpacity onPress={() => router.push('/legal/refund')}><Text style={styles.policyLink}>Refund</Text></TouchableOpacity>
         </View>
         <Text style={styles.copyright}>© Pahadi Collections. All Rights Reserved - {currentYear}</Text>
         <Text style={styles.rebootText}>Powered by Reboot AI</Text>

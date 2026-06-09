@@ -47,7 +47,7 @@ export default function SearchScreen() {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color="#f59e0b" />
-        <Text style={styles.loadingText}>Searching for "{q}"...</Text>
+        <Text style={styles.loadingText}>Searching for &quot;{q}&quot;...</Text>
       </View>
     );
   }
@@ -83,7 +83,7 @@ export default function SearchScreen() {
         ListEmptyComponent={
           <View style={styles.empty}>
             <IconSymbol name="magnifyingglass" size={60} color="#e5e7eb" />
-            <Text style={styles.emptyText}>No products found for "{q}"</Text>
+            <Text style={styles.emptyText}>No products found for &quot;{q}&quot;</Text>
             <TouchableOpacity style={styles.shopBtn} onPress={() => router.push('/(drawer)/(tabs)')}>
               <Text style={styles.shopBtnText}>Browse Collections</Text>
             </TouchableOpacity>

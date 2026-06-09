@@ -39,6 +39,7 @@ const MAPPING = {
   'mappin.and.ellipse': 'location-on',
   'person.fill': 'person',
   'xmark.circle.fill': 'cancel',
+  'camera.fill': 'photo-camera',
 } as IconMapping;
 
 /**
