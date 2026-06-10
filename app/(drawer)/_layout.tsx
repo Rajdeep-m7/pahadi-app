@@ -8,12 +8,14 @@ import { DrawerContentScrollView, DrawerItemList, DrawerItem } from '@react-navi
 import { Colors } from '@/constants/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
+import { IconSymbol } from '@/components/ui/icon-symbol';
 
 interface Category {
   _id: string;
   name: string;
   slug: string;
   iconUrl?: string;
+  imageUrl?: string;
 }
 
 function CustomDrawerContent(props: any) {
@@ -44,10 +46,14 @@ function CustomDrawerContent(props: any) {
               router.push(`/category/${category.slug || category._id}`);
             }}
             icon={() => (
-              <Image
-                source={{ uri: category.iconUrl || 'https://via.placeholder.com/24' }}
-                style={{ width: 20, height: 20, borderRadius: 2 , objectFit: 'cover' }}
-              />
+              category.iconUrl ? (
+                <Image
+                  source={{ uri: category.iconUrl }}
+                  style={{ width: 22, height: 22, borderRadius: 4, resizeMode: 'contain' }}
+                />
+              ) : (
+                <IconSymbol name="list.bullet.rectangle" size={20} color="#9ca3af" />
+              )
             )}
           />
         ))

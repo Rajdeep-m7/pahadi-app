@@ -125,11 +125,13 @@ export default function ProductCard({
         {categoryName ? <Text style={styles.category} numberOfLines={1}>{categoryName}</Text> : null}
 
         {/* Attributes (e.g., Size, Weight) */}
-        {attributes && Object.keys(attributes).length > 0 && (
+        {attributes && Object.entries(attributes).filter(([k]) => !['discounttype', 'type-single', 'discountType', 'type'].includes(k.toLowerCase())).length > 0 && (
           <View style={styles.attributesContainer}>
-            {Object.entries(attributes).map(([k, v]) => (
+            {Object.entries(attributes)
+              .filter(([k]) => !['discounttype', 'type-single', 'discountType', 'type'].includes(k.toLowerCase()))
+              .map(([k, v]) => (
               <View key={k} style={styles.attributeBadge}>
-                <Text style={styles.attributeText}>{`${k}: ${v}`}</Text>
+                <Text style={styles.attributeText}>{k}: {v}</Text>
               </View>
             ))}
           </View>

@@ -29,7 +29,7 @@ interface Address {
   addressLine2?: string;
   city: string;
   state: string;
-  pinCode: string;
+  postalCode: string;
   isDefault: boolean;
 }
 
@@ -213,7 +213,7 @@ export default function CheckoutScreen() {
                   <View style={styles.addressDetails}>
                     <Text style={styles.addressName}>{addr.fullName}</Text>
                     <Text style={styles.addressText} numberOfLines={2}>
-                      {addr.addressLine1}, {addr.city}, {addr.state} - {addr.pinCode}
+                      {addr.addressLine1}, {addr.city}, {addr.state} - {addr.postalCode}
                     </Text>
                     <Text style={styles.addressPhone}>{addr.phone}</Text>
                   </View>

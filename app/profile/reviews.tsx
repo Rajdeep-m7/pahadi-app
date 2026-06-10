@@ -28,6 +28,7 @@ interface Review {
     title: string;
     coverImage: { url: string };
   };
+  images?: { url: string; publicId: string }[];
 }
 
 export default function MyReviewsScreen() {

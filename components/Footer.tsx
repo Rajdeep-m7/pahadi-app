@@ -32,10 +32,10 @@ export default function Footer() {
         <Text style={[styles.subtitle, { marginTop: 20 }]}>Follow Us</Text>
         <View style={styles.socialRow}>
           <TouchableOpacity onPress={() => handleLinkPress('https://www.facebook.com/profile.php?id=61585854546423#')}>
-            <IconSymbol name="globe" size={24} color="#4b5563" />
+            <IconSymbol name="facebook" size={24} color="#4b5563" />
           </TouchableOpacity>
           <TouchableOpacity onPress={() => handleLinkPress('https://www.instagram.com/pahadi_collections/')}>
-            <IconSymbol name="camera" size={24} color="#4b5563" />
+            <IconSymbol name="instagram" size={24} color="#4b5563" />
           </TouchableOpacity>
         </View>
       </View>

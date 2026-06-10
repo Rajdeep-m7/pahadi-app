@@ -327,8 +327,10 @@ export default function ProductPageContent({
                           styles.activeStyleBtnText,
                       ]}
                     >
-                      {Object.values(opt.attributes || {}).join(" / ") ||
-                        opt.title}
+                      {Object.entries(opt.attributes || {})
+                        .filter(([k]) => !['discounttype', 'type-single', 'discountType', 'type' , 'discount' , 'type'].includes(k.toLowerCase()))
+                        .map(([k, v]) => `${k}: ${v}`)
+                        .join(" / ") || opt.title}
                     </Text>
                   </TouchableOpacity>
                 ))}

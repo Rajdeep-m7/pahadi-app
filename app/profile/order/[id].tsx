@@ -37,6 +37,8 @@ interface OrderDetail {
   shipments?: any[];
   paymentMethod?: string;
   paymentStatus?: string;
+  paidAmount?: number;
+  remainingPaidAmount?: number;
 }
 
 const ORDER_STATUS_LABELS: Record<string, string> = {
@@ -86,6 +88,8 @@ export default function OrderDetailsScreen() {
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showCancelItemModal, setShowCancelItemModal] = useState(false);
+  const [selectedCancelItem, setSelectedCancelItem] = useState<any>(null);
   const [cancelReason, setCancelReason] = useState('');
   const [invoicing, setInvoicing] = useState(false);
 
@@ -134,6 +138,27 @@ export default function OrderDetailsScreen() {
       fetchOrderDetails();
     } catch (error: any) {
       Alert.alert('Error', error.response?.data?.message || 'Failed to cancel order');
+    } finally {
+      setCancelling(false);
+    }
+  };
+
+  const handleCancelItem = async () => {
+    if (!selectedCancelItem) return;
+    setCancelling(true);
+    const token = await SecureStore.getItemAsync('userToken');
+    try {
+      await axios.patch(`${BASE_URL}/orders/me/${id}/cancel-item/${selectedCancelItem._id}`, 
+        { reason: cancelReason || 'Cancelled by user from mobile app' },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      Alert.alert('Success', 'Item cancelled successfully');
+      setShowCancelItemModal(false);
+      setSelectedCancelItem(null);
+      setCancelReason('');
+      fetchOrderDetails();
+    } catch (error: any) {
+      Alert.alert('Error', error.response?.data?.message || 'Failed to cancel item');
     } finally {
       setCancelling(false);
     }
@@ -289,7 +314,9 @@ export default function OrderDetailsScreen() {
                   <Text style={styles.itemTitle} numberOfLines={2}>{item.snapshot?.title || item.title}</Text>
                   <View style={styles.itemMetaRow}>
                     <Text style={styles.itemMeta}>Qty: {item.quantity}</Text>
-                    {Object.entries(item.attributes || item.snapshot?.attributes || {}).map(([k, v]: any) => (
+                    {Object.entries(item.attributes || item.snapshot?.attributes || {})
+                      .filter(([k]) => !['discounttype', 'type-single', 'discountType', 'type'].includes(k.toLowerCase()))
+                      .map(([k, v]: any) => (
                       <Text key={k} style={styles.itemAttrBadge}>{k}: {v}</Text>
                     ))}
                   </View>
@@ -335,9 +362,31 @@ export default function OrderDetailsScreen() {
                       );
                     })()}
                     {item.itemStatus !== 'active' && (
-                      <View style={styles.itemStatusBadge}>
-                        <Text style={styles.itemStatusText}>{item.itemStatus.replace(/_/g, ' ').toUpperCase()}</Text>
+                      <View style={{ gap: 4 }}>
+                        <View style={styles.itemStatusBadge}>
+                          <Text style={styles.itemStatusText}>{item.itemStatus.replace(/_/g, ' ').toUpperCase()}</Text>
+                        </View>
+                        {(item.itemStatus === 'cancelled' || item.itemStatus === 'returned' || order.paymentStatus === 'refunded') && (item.refundStatus === 'processed' || order.paymentStatus === 'refunded') && (
+                          <View style={styles.refundCompleteBadge}>
+                            <IconSymbol name="checkmark.circle.fill" size={10} color="#fff" />
+                            <Text style={styles.refundCompleteText}>REFUND COMPLETE</Text>
+                          </View>
+                        )}
                       </View>
+                    )}
+
+                    {/* CANCEL ITEM ACTION */}
+                    {(order.orderStatus === 'processing' || order.orderStatus === 'pending_payment') && item.itemStatus === 'active' && (
+                      <TouchableOpacity 
+                        style={styles.itemCancelBtn}
+                        onPress={() => {
+                          setSelectedCancelItem(item);
+                          setShowCancelItemModal(true);
+                        }}
+                      >
+                        <IconSymbol name="xmark.circle" size={12} color="#ef4444" />
+                        <Text style={styles.itemCancelBtnText}>Cancel Item</Text>
+                      </TouchableOpacity>
                     )}
                   </View>
                 </View>
@@ -355,7 +404,7 @@ export default function OrderDetailsScreen() {
           <View style={styles.whiteCard}>
             <Text style={styles.addressName}>{order.shippingAddress.fullName}</Text>
             <Text style={styles.addressText}>{order.shippingAddress.addressLine1}{order.shippingAddress.addressLine2 ? `, ${order.shippingAddress.addressLine2}` : ''}</Text>
-            <Text style={styles.addressText}>{`${order.shippingAddress.city}, ${order.shippingAddress.state} - ${order.shippingAddress.pinCode}`}</Text>
+            <Text style={styles.addressText}>{`${order.shippingAddress.city}, ${order.shippingAddress.state} - ${order.shippingAddress.postalCode}`}</Text>
             <Text style={styles.addressPhone}>Phone: {order.shippingAddress.phone}</Text>
           </View>
         </View>
@@ -399,6 +448,12 @@ export default function OrderDetailsScreen() {
                   {(order.paymentStatus || 'Success').toUpperCase()}
                 </Text>
               </View>
+              {order.paymentStatus === 'refunded' && (
+                <View style={[styles.refundCompleteBadge, { marginTop: 8, alignSelf: 'flex-start' }]}>
+                  <IconSymbol name="checkmark.circle.fill" size={12} color="#fff" />
+                  <Text style={[styles.refundCompleteText, { fontSize: 10 }]}>REFUND PROCESSED</Text>
+                </View>
+              )}
             </View>
           </View>
         </View>
@@ -433,9 +488,50 @@ export default function OrderDetailsScreen() {
             </View>
           </View>
         </View>
-      </Modal>
+        </Modal>
 
-      {/* RETURN MODAL */}
+        {/* CANCEL ITEM MODAL */}
+        <Modal visible={showCancelItemModal} transparent animationType="fade">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Cancel Item</Text>
+            {selectedCancelItem && (
+              <View style={[styles.returnItemPreview, { width: '100%', marginBottom: 15 }]}>
+                <Image 
+                  source={{ uri: selectedCancelItem.snapshot?.coverImage || selectedCancelItem.coverImage }} 
+                  style={styles.returnItemImage} 
+                />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.returnItemTitle} numberOfLines={1}>{selectedCancelItem.snapshot?.title || selectedCancelItem.title}</Text>
+                  <Text style={styles.returnItemMeta}>Qty: {selectedCancelItem.quantity}</Text>
+                </View>
+              </View>
+            )}
+            <Text style={styles.modalDesc}>Are you sure you want to cancel this product? This action cannot be undone.</Text>
+            <TextInput
+              style={styles.modalInput}
+              placeholder="Reason for cancellation (optional)"
+              value={cancelReason}
+              onChangeText={setCancelReason}
+              multiline
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity style={styles.modalBtnCancel} onPress={() => { setShowCancelItemModal(false); setSelectedCancelItem(null); }}>
+                <Text style={styles.modalBtnCancelText}>Go Back</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.modalBtnConfirm} 
+                onPress={handleCancelItem}
+                disabled={cancelling}
+              >
+                {cancelling ? <ActivityIndicator color="#fff" /> : <Text style={styles.modalBtnConfirmText}>Cancel Item</Text>}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+        </Modal>
+
+        {/* RETURN MODAL */}
       <Modal visible={showReturnModal} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.returnModalContent}>
@@ -925,5 +1021,36 @@ const styles = StyleSheet.create({
   submitReturnBtnText: {
     color: '#fff',
     fontWeight: 'bold',
+  },
+  itemCancelBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#fff',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: '#fee2e2',
+    marginTop: 4,
+  },
+  itemCancelBtnText: {
+    color: '#ef4444',
+    fontSize: 11,
+    fontWeight: 'bold',
+  },
+  refundCompleteBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#10b981',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  refundCompleteText: {
+    fontSize: 9,
+    fontWeight: '900',
+    color: '#fff',
   },
 });

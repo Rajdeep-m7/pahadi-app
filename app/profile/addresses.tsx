@@ -27,7 +27,7 @@ interface Address {
   addressLine2?: string;
   city: string;
   state: string;
-  pinCode: string;
+  postalCode: string;
   isDefault: boolean;
 }
 
@@ -44,7 +44,7 @@ export default function AddressesScreen() {
   const [addressLine2, setAddressLine2] = useState('');
   const [city, setCity] = useState('');
   const [state, setState] = useState('');
-  const [pinCode, setPinCode] = useState('');
+  const [postalCode, setPinCode] = useState('');
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -68,7 +68,7 @@ export default function AddressesScreen() {
   };
 
   const handleAddAddress = async () => {
-    if (!fullName || !phone || !addressLine1 || !city || !state || !pinCode) {
+    if (!fullName || !phone || !addressLine1 || !city || !state || !postalCode) {
       Alert.alert('Error', 'Please fill all required fields.');
       return;
     }
@@ -78,7 +78,7 @@ export default function AddressesScreen() {
     try {
       await axios.post(
         `${BASE_URL}/addresses`,
-        { label, fullName, phone, addressLine1, addressLine2, city, state, pinCode },
+        { label, fullName, phone, addressLine1, addressLine2, city, state, postalCode },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setModalVisible(false);
@@ -163,7 +163,7 @@ export default function AddressesScreen() {
             <Text style={styles.name}>{item.fullName}</Text>
             <Text style={styles.addressText}>{item.addressLine1}</Text>
             {item.addressLine2 && <Text style={styles.addressText}>{item.addressLine2}</Text>}
-            <Text style={styles.addressText}>{`${item.city}, ${item.state} - ${item.pinCode}`}</Text>
+            <Text style={styles.addressText}>{`${item.city}, ${item.state} - ${item.postalCode}`}</Text>
             <Text style={styles.phoneText}>Phone: {item.phone}</Text>
 
             <View style={styles.cardActions}>
@@ -236,7 +236,7 @@ export default function AddressesScreen() {
                 </View>
                 <View style={[styles.inputGroup, { flex: 1 }]}>
                   <Text style={styles.modalLabel}>Pincode</Text>
-                  <TextInput style={styles.modalInput} value={pinCode} onChangeText={setPinCode} placeholder="400001" keyboardType="numeric" maxLength={6} />
+                  <TextInput style={styles.modalInput} value={postalCode} onChangeText={setPinCode} placeholder="400001" keyboardType="numeric" maxLength={6} />
                 </View>
               </View>
 

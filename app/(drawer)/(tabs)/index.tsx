@@ -12,6 +12,11 @@ import { useCartStore } from "@/store/cartStore";
 import image3 from "../../../assets/images/image3.jpeg";
 import image1 from "../../../assets/images/3.jpg";
 import image2 from "../../../assets/images/4.jpg";
+
+import mbl1 from "../../../assets/images/6.jpg";
+import mbl2 from "../../../assets/images/7.jpg";
+import mbl3 from "../../../assets/images/8.jpg";
+
 import VideoSlider from "@/components/home/VideoSlider";
 import Footer from "@/components/Footer";
 
@@ -189,6 +194,13 @@ export default function HomeScreen() {
 
             <View>
               <VideoSlider />
+            </View>
+
+            {/* Bottom Mobile Static Banner */}
+            <View style={styles.bannerContainer}>
+              <Image source={mbl1} style={styles.banner} />
+              <Image source={mbl2} style={styles.banner} />
+              <Image source={mbl3} style={styles.banner} />
             </View>
 
             <Footer />

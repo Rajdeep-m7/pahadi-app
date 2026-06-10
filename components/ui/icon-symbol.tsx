@@ -5,7 +5,7 @@ import { SymbolWeight, SymbolViewProps } from 'expo-symbols';
 import { ComponentProps } from 'react';
 import { OpaqueColorValue, type StyleProp, type TextStyle } from 'react-native';
 
-type IconMapping = Record<SymbolViewProps['name'], ComponentProps<typeof MaterialIcons>['name']>;
+type IconMapping = Record<string, ComponentProps<typeof MaterialIcons>['name']>;
 type IconSymbolName = keyof typeof MAPPING;
 
 /**
@@ -13,7 +13,7 @@ type IconSymbolName = keyof typeof MAPPING;
  * - see Material Icons in the [Icons Directory](https://icons.expo.fyi).
  * - see SF Symbols in the [SF Symbols](https://developer.apple.com/sf-symbols/) app.
  */
-const MAPPING = {
+const MAPPING: IconMapping = {
   'house.fill': 'home',
   'paperplane.fill': 'send',
   'person.circle': 'person',
@@ -40,6 +40,17 @@ const MAPPING = {
   'person.fill': 'person',
   'xmark.circle.fill': 'cancel',
   'camera.fill': 'photo-camera',
+  'globe': 'public',
+  'camera': 'photo-camera',
+  'facebook': 'facebook',
+  'phone': 'call',
+  'message': 'chat',
+  'envelope': 'email',
+  'map': 'place',
+  'heart.fill': 'favorite',
+  'xmark.circle': 'cancel',
+  'checkmark.circle.fill': 'check-circle',
+  'instagram': 'camera-alt',
 } as IconMapping;
 
 /**
