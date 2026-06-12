@@ -50,7 +50,7 @@ interface CartState {
   addToCart: (variantId: string, product: CartItem['product']) => void;
   removeFromCart: (variantId: string) => void;
   updateQuantity: (variantId: string, quantity: number) => void;
-  clearCart: () => void;
+  clearCart: () => Promise<void>;
   
   // Backend Sync
   syncToBackend: () => Promise<void>;
@@ -131,7 +131,19 @@ export const useCartStore = create<CartState>()(
         });
       },
 
-      clearCart: () => set({ items: [], isDirty: false }),
+      clearCart: async () => {
+        set({ items: [], isDirty: false });
+        const token = await SecureStore.getItemAsync('userToken');
+        if (!token) return;
+
+        try {
+          await axios.delete(`${BASE_URL}/cart`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+        } catch (error) {
+          console.error('Failed to clear cart on backend:', error);
+        }
+      },
 
       syncToBackend: async () => {
         const token = await SecureStore.getItemAsync('userToken');

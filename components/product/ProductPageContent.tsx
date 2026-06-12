@@ -342,8 +342,10 @@ export default function ProductPageContent({
           <View style={styles.infoRow}>
             <IconSymbol name="paperplane.fill" size={16} color="#3b82f6" />
             <Text style={styles.infoText}>
-              Return Policy: {productDetails.returnPolicyType || "None"} (
-              {productDetails.returnWindowDays || 0} days)
+              {productDetails.returnPolicyType?.toLowerCase() === 'none' || !productDetails.returnPolicyType
+                ? "Return policy not available"
+                : `Return Policy: ${productDetails.returnPolicyType} (${productDetails.returnWindowDays || 0} days)`
+              }
             </Text>
           </View>
 

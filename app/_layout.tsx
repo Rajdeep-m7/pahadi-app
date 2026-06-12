@@ -61,31 +61,71 @@ export default function RootLayout() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   
   const [isReady, setIsReady] = useState(false);
+  const lastNotificationResponse = Notifications.useLastNotificationResponse();
+
+  useEffect(() => {
+    if (
+      lastNotificationResponse &&
+      lastNotificationResponse.notification.request.content.data?.url &&
+      lastNotificationResponse.actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER
+    ) {
+      const url = lastNotificationResponse.notification.request.content.data.url;
+      console.log('Notification response received, navigating to:', url);
+      // Ensure we only navigate once the app is ready and hydrated
+      if (isReady && cartHydrated && authInitialized) {
+        setTimeout(() => {
+          router.push(url);
+        }, 500);
+      }
+    }
+  }, [lastNotificationResponse, isReady, cartHydrated, authInitialized]);
 
   useCartSync();
+
+  // Payment Recovery Logic
+  useEffect(() => {
+    const checkPendingOrder = async () => {
+      if (!authInitialized || !isAuthenticated) return;
+
+      try {
+        const pendingOrderId = await SecureStore.getItemAsync('pending_verification_order_id');
+        if (pendingOrderId) {
+          console.log('[Recovery] Found pending order:', pendingOrderId);
+          
+          const token = await SecureStore.getItemAsync('userToken');
+          const { data } = await axios.get(`${BASE_URL}/orders/me/${pendingOrderId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+
+          if (data && data.data && data.data.orderStatus === 'processing') {
+            console.log('[Recovery] Order was successful! Navigating to success...');
+            await SecureStore.deleteItemAsync('pending_verification_order_id');
+            const clearCart = useCartStore.getState().clearCart;
+            clearCart();
+            
+            setTimeout(() => {
+              router.replace('/success');
+            }, 1000);
+          } else {
+            console.log('[Recovery] Order still pending or failed. Status:', data?.data?.orderStatus);
+          }
+        }
+      } catch (error) {
+        console.error('[Recovery] Failed to check pending order:', error);
+      }
+    };
+
+    if (authInitialized && isReady) {
+      checkPendingOrder();
+    }
+  }, [authInitialized, isAuthenticated, isReady]);
 
   useEffect(() => {
     // Initialize Auth first
     initializeAuth();
     
-    // Check onboarding status
-    const checkOnboarding = async () => {
-      try {
-        const hasSeen = await AsyncStorage.getItem('hasSeenOnboarding');
-        if (!hasSeen) {
-          // Add a small delay to ensure router is ready
-          setTimeout(() => {
-            router.replace('/onboarding');
-          }, 100);
-        }
-      } catch (e) {
-        console.error('Failed to check onboarding status', e);
-      } finally {
-        setIsReady(true);
-      }
-    };
-    
-    checkOnboarding();
+    // Onboarding disabled by user request - set ready immediately
+    setIsReady(true);
   }, []);
 
   useEffect(() => {
@@ -105,7 +145,6 @@ export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
         <Stack>
-          <Stack.Screen name="onboarding" options={{ headerShown: false }} />
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
           <Stack.Screen name="legal" options={{ headerShown: false }} />

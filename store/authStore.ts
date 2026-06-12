@@ -91,9 +91,15 @@ axios.interceptors.response.use(
         processQueue(null, accessToken);
         originalRequest.headers['Authorization'] = 'Bearer ' + accessToken;
         return axios(originalRequest);
-      } catch (refreshError) {
+      } catch (refreshError: any) {
         processQueue(refreshError, null);
-        await useAuthStore.getState().logout();
+        
+        // Only logout if the backend explicitly rejected the refresh token (4xx error)
+        // If it's a network error or 500 error, keep the session intact
+        if (refreshError.response && refreshError.response.status >= 400 && refreshError.response.status < 500) {
+          await useAuthStore.getState().logout();
+        }
+        
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

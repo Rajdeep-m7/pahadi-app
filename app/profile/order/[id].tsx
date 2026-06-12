@@ -277,19 +277,65 @@ export default function OrderDetailsScreen() {
             </View>
             <View style={styles.whiteCard}>
               {order.shipments.map((s: any, idx: number) => (
-                <View key={idx} style={styles.shipmentRow}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.metaLabel}>Tracking Number</Text>
-                    <Text style={styles.metaValue}>{s.trackingNumber || 'Assigning Soon...'}</Text>
-                    {s.provider && <Text style={styles.metaSubValue}>{s.provider}</Text>}
+                <View key={idx} style={[styles.shipmentBlock, idx > 0 && { borderTopWidth: 1, borderTopColor: '#f1f5f9' }]}>
+                  <View style={styles.shipmentRow}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.metaLabel}>Tracking Number</Text>
+                      <Text style={styles.metaValue}>{s.trackingNumber || 'Assigning Soon...'}</Text>
+                      {s.provider && <Text style={styles.metaSubValue}>{s.provider}</Text>}
+                    </View>
+                    {s.trackUrl && (
+                      <TouchableOpacity 
+                        style={styles.trackBtn} 
+                        onPress={() => Linking.openURL(s.trackUrl)}
+                      >
+                        <Text style={styles.trackBtnText}>Track Online</Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
-                  {s.trackingNumber && (
-                    <TouchableOpacity 
-                      style={styles.trackBtn} 
-                      onPress={() => Linking.openURL(`https://shiprocket.co.in/tracking/${s.trackingNumber}`)}
-                    >
-                      <Text style={styles.trackBtnText}>Track</Text>
-                    </TouchableOpacity>
+
+                  {/* REAL-TIME TRACKING TIMELINE */}
+                  {s.currentStatus && (
+                    <View style={styles.trackingTimelineContainer}>
+                      <View style={styles.statusBanner}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.currentStatusLabel}>Current Status</Text>
+                          <Text style={styles.currentStatusValue}>{s.currentStatus}</Text>
+                        </View>
+                        {s.estimatedDelivery && (
+                          <View style={{ alignItems: 'flex-end' }}>
+                            <Text style={styles.currentStatusLabel}>Est. Delivery</Text>
+                            <Text style={styles.currentStatusValue}>{s.estimatedDelivery}</Text>
+                          </View>
+                        )}
+                      </View>
+
+                      {s.timeline && s.timeline.length > 0 && (
+                        <View style={styles.timelineList}>
+                          {s.timeline.map((step: any, stepIdx: number) => (
+                            <View key={stepIdx} style={styles.timelineItem}>
+                              <View style={styles.timelineLeft}>
+                                <View style={[
+                                  styles.timelineDot, 
+                                  stepIdx === 0 ? styles.timelineDotActive : styles.timelineDotInactive
+                                ]} />
+                                {stepIdx < s.timeline.length - 1 && <View style={styles.timelineLine} />}
+                              </View>
+                              <View style={styles.timelineRight}>
+                                <Text style={[
+                                  styles.timelineActivity,
+                                  stepIdx === 0 ? styles.timelineActivityActive : styles.timelineActivityInactive
+                                ]}>{step.activity}</Text>
+                                <Text style={styles.timelineMeta}>
+                                  {step.location && step.location !== 'Unknown' ? `${step.location} | ` : ''}
+                                  {step.date} {step.time}
+                                </Text>
+                              </View>
+                            </View>
+                          ))}
+                        </View>
+                      )}
+                    </View>
                   )}
                 </View>
               ))}
@@ -1052,5 +1098,97 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '900',
     color: '#fff',
+  },
+  // TRACKING TIMELINE STYLES
+  shipmentBlock: {
+    paddingBottom: 16,
+  },
+  trackingTimelineContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 8,
+  },
+  statusBanner: {
+    flexDirection: 'row',
+    backgroundColor: '#f8fafc',
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+  },
+  currentStatusLabel: {
+    fontSize: 9,
+    fontWeight: '900',
+    color: '#64748b',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  currentStatusValue: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#1e293b',
+    marginTop: 2,
+  },
+  timelineList: {
+    paddingLeft: 8,
+  },
+  timelineItem: {
+    flexDirection: 'row',
+    gap: 16,
+    minHeight: 50,
+  },
+  timelineLeft: {
+    alignItems: 'center',
+    width: 20,
+  },
+  timelineDot: {
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    borderWidth: 2,
+    borderColor: '#fff',
+    zIndex: 10,
+  },
+  timelineDotActive: {
+    backgroundColor: '#f59e0b',
+    transform: [{ scale: 1.2 }],
+    shadowColor: '#f59e0b',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.5,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  timelineDotInactive: {
+    backgroundColor: '#cbd5e1',
+  },
+  timelineLine: {
+    position: 'absolute',
+    top: 12,
+    bottom: 0,
+    width: 2,
+    backgroundColor: '#f1f5f9',
+    left: 9,
+  },
+  timelineRight: {
+    flex: 1,
+    paddingBottom: 20,
+  },
+  timelineActivity: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  timelineActivityActive: {
+    fontWeight: 'bold',
+    color: '#1e293b',
+  },
+  timelineActivityInactive: {
+    fontWeight: '600',
+    color: '#64748b',
+  },
+  timelineMeta: {
+    fontSize: 11,
+    color: '#94a3b8',
+    marginTop: 2,
+    fontWeight: '500',
   },
 });

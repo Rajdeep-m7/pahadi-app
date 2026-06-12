@@ -1,9 +1,10 @@
-import { Tabs } from "expo-router";
+import { Tabs, router } from "expo-router";
 import React from "react";
 
 import { HapticTab } from "@/components/haptic-tab";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useCartStore } from "@/store/cartStore";
+import { useAuthStore } from "@/store/authStore";
 
 export default function TabLayout() {
   const cartItemCount = useCartStore((state) => state.items.length);
@@ -35,8 +36,14 @@ export default function TabLayout() {
         options={{
           title: "Category",
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="paperplane.fill" color={color} />
+            <IconSymbol size={28} name="list.bullet.rectangle" color={color} />
           ),
+        }}
+        listeners={{
+          tabPress: (e) => {
+            e.preventDefault();
+            router.push('/category/all-jewellery');
+          },
         }}
       />
       <Tabs.Screen
@@ -46,6 +53,14 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => (
             <IconSymbol size={28} name="person.circle" color={color} />
           ),
+        }}
+        listeners={{
+          tabPress: (e) => {
+            if (!useAuthStore.getState().isAuthenticated) {
+              e.preventDefault();
+              router.push('/(auth)/login');
+            }
+          },
         }}
       />
       <Tabs.Screen

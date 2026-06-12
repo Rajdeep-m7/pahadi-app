@@ -1,14 +1,14 @@
-import { StyleSheet, SafeAreaView, ScrollView, View, ActivityIndicator, Image } from "react-native";
+import { StyleSheet, SafeAreaView, ScrollView, View, ActivityIndicator, Image, Modal, TouchableOpacity } from "react-native";
 import { useEffect, useState } from "react";
 import axios from "axios";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import HeroSlider from "../../../components/home/HeroSlider"
 import { ThemedText } from "@/components/themed-text";
 import CategorySlider from "@/components/home/CategorySlider";
 import ProductCard from "@/components/ui/ProductCard";
 import { BASE_URL } from "@/constants/config";
 import { useCartStore } from "@/store/cartStore";
-
-// Static images
+import { IconSymbol } from "@/components/ui/icon-symbol";
 import image3 from "../../../assets/images/image3.jpeg";
 import image1 from "../../../assets/images/3.jpg";
 import image2 from "../../../assets/images/4.jpg";
@@ -47,10 +47,23 @@ interface ActiveSection {
   products: Product[];
 }
 
+interface PopupData {
+  _id: string;
+  title: string;
+  image: {
+    url: string;
+    publicId: string;
+  };
+  link?: string;
+  isActive: boolean;
+}
+
 export default function HomeScreen() {
   const [latestProducts, setLatestProducts] = useState<Product[]>([]);
   const [activeSections, setActiveSections] = useState<ActiveSection[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isPopupVisible, setIsPopupVisible] = useState(false);
+  const [popupData, setPopupData] = useState<PopupData | null>(null);
   const addToCart = useCartStore((state) => state.addToCart);
 
   // Utility to fetch stocks and variant details for a list of products
@@ -103,7 +116,29 @@ export default function HomeScreen() {
       }
     };
 
+    const fetchPopupData = async () => {
+      try {
+        // Check if popup was already shown to this user
+        const wasShown = await AsyncStorage.getItem('popup_shown');
+        if (wasShown) return;
+
+        const { data } = await axios.get(`${BASE_URL}/storefront`);
+        if (data && data.data && data.data.popup && data.data.popup.isActive) {
+          setPopupData(data.data.popup);
+          // Show popup after a short delay for better UX
+          setTimeout(async () => {
+            setIsPopupVisible(true);
+            // Mark as shown so it doesn't appear again
+            await AsyncStorage.setItem('popup_shown', 'true');
+          }, 1500);
+        }
+      } catch (error) {
+        console.error("Error fetching popup data:", error);
+      }
+    };
+
     fetchHomeData();
+    fetchPopupData();
   }, []);
 
   const formatPrice = (price: number) => {
@@ -207,6 +242,42 @@ export default function HomeScreen() {
           </>
         )}
       </ScrollView>
+
+      {/* Welcome Popup Modal */}
+      <Modal
+        animationType="fade"
+        transparent={true}
+        visible={isPopupVisible}
+        onRequestClose={() => setIsPopupVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <TouchableOpacity 
+              style={styles.closeButton} 
+              onPress={() => setIsPopupVisible(false)}
+            >
+              <IconSymbol name="xmark.circle.fill" size={28} color="#9ca3af" />
+            </TouchableOpacity>
+            
+            <Image 
+              source={{ uri: popupData?.image?.url || 'https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?q=80&w=2070&auto=format&fit=crop' }} 
+              style={styles.popupImage} 
+            />
+            
+            <View style={styles.popupTextContainer}>
+              <ThemedText style={styles.popupTitle}>{popupData?.title || 'Welcome to Pahadi Collections!'}</ThemedText>
+              <ThemedText style={styles.popupSubtitle}>Discover the essence of the mountains with our exclusive handcrafted products.</ThemedText>
+              
+              <TouchableOpacity 
+                style={styles.shopNowButton}
+                onPress={() => setIsPopupVisible(false)}
+              >
+                <ThemedText style={styles.shopNowText}>SHOP NOW</ThemedText>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -245,5 +316,69 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 20,
     color: '#888',
-  }
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    width: '100%',
+    backgroundColor: '#fff',
+    borderRadius: 24,
+    overflow: 'hidden',
+    position: 'relative',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+  },
+  closeButton: {
+    position: 'absolute',
+    top: 15,
+    right: 15,
+    zIndex: 10,
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    borderRadius: 15,
+  },
+  popupImage: {
+    width: '100%',
+    height: 180,
+    resizeMode: 'cover',
+  },
+  popupTextContainer: {
+    padding: 24,
+    alignItems: 'center',
+  },
+  popupTitle: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#111827',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  popupSubtitle: {
+    fontSize: 14,
+    color: '#6b7280',
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 20,
+  },
+  shopNowButton: {
+    backgroundColor: '#111827',
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 12,
+    width: '100%',
+  },
+  shopNowText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    letterSpacing: 1,
+  },
 })

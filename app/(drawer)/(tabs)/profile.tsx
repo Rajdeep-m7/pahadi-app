@@ -58,7 +58,7 @@ export default function ProfileScreen() {
     },
   ];
 
-  if (!isInitialized) {
+  if (!isInitialized || !isAuthenticated) {
     return (
       <View style={styles.centered}>
         <ActivityIndicator size="large" color="#111827" />

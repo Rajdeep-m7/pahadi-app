@@ -8,7 +8,16 @@
     "scheme": "pahadiapp",
     "userInterfaceStyle": "automatic",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "LSApplicationQueriesSchemes": [
+          "tez",
+          "phonepe",
+          "paytmmp",
+          "bhim",
+          "upi"
+        ]
+      }
     },
     "android": {
       "package": "com.pahadi.collections",
@@ -28,6 +37,7 @@
     "newArchEnabled": false,
     "plugins": [
       "./plugins/withRazorpay",
+      "./plugins/withAndroidQueries",
       "expo-router",
       [
         "expo-splash-screen",

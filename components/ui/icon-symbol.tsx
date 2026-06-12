@@ -51,6 +51,9 @@ const MAPPING: IconMapping = {
   'xmark.circle': 'cancel',
   'checkmark.circle.fill': 'check-circle',
   'instagram': 'camera-alt',
+  'creditcard.fill': 'payment',
+  'lock.fill': 'lock',
+  'plus.circle': 'add-circle-outline',
 } as IconMapping;
 
 /**

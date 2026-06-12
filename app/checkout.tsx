@@ -10,6 +10,7 @@ import {
   Alert,
   Image,
   Linking,
+  Platform,
 } from 'react-native';
 import RazorpayCheckout from 'react-native-razorpay';
 import { router, Stack } from 'expo-router';
@@ -109,7 +110,7 @@ export default function CheckoutScreen() {
       const { gatewayOrderId, amount, currency } = paymentRes.data.data;
 
       // 3. Open Native Razorpay Checkout
-      const options = {
+      const options: any = {
         description: `Order #${orderId.substring(0, 8)}`,
         image: 'https://pahadiapp.com/logo.png', // Replace with your logo
         currency: currency,
@@ -125,30 +126,74 @@ export default function CheckoutScreen() {
         theme: { color: '#b98b5f' }
       };
 
-      RazorpayCheckout.open(options).then(async (data: any) => {
-        // Handle success
+      // Handle Direct UPI Intent
+      if (paymentMethod !== 'razorpay') {
+        options.method = 'upi';
+        options.prefill.method = 'upi';
+        
+        if (paymentMethod === 'google_pay') {
+          options.upi_app_package_name = Platform.OS === 'android' 
+            ? 'com.google.android.apps.nbu.paisa.user' 
+            : 'tez';
+        } else if (paymentMethod === 'phonepe') {
+          options.upi_app_package_name = Platform.OS === 'android' 
+            ? 'com.phonepe.app' 
+            : 'phonepe';
+        } else if (paymentMethod === 'paytm') {
+          options.upi_app_package_name = Platform.OS === 'android' 
+            ? 'net.one97.paytm' 
+            : 'paytmmp';
+        }
+        
+        // Critical for bypassing UI in some SDK versions
+        options['_[flow]'] = 'intent';
+      }
+
+      try {
+        // Save pending order ID for recovery in case app is killed
+        await SecureStore.setItemAsync('pending_verification_order_id', orderId);
+        
+        const data = await RazorpayCheckout.open(options);
+        
+        // 4. Verify Payment on Backend
         try {
-          await axios.post(`${BASE_URL}/payments/verify`, {
+          const verifyRes = await axios.post(`${BASE_URL}/payments/verify`, {
             razorpayOrderId: data.razorpay_order_id,
-            razorpayPaymentId: data.data?.razorpay_payment_id || data.razorpay_payment_id,
+            razorpayPaymentId: data.razorpay_payment_id,
             razorpaySignature: data.razorpay_signature,
           }, {
             headers: { Authorization: `Bearer ${token}` },
           });
 
+          console.log('Payment verification response:', verifyRes.data);
+          
+          // Clear recovery ID on success
+          await SecureStore.deleteItemAsync('pending_verification_order_id');
+          
           clearCart();
-          Alert.alert('Success', 'Order placed successfully!', [
-            { text: 'View Orders', onPress: () => router.replace('/profile/orders') },
-          ]);
-        } catch (verifyErr) {
+          
+          // Small delay before navigation to ensure modal is fully dismissed
+          setTimeout(() => {
+            router.replace('/success');
+          }, 800);
+          
+        } catch (verifyErr: any) {
           console.error('Payment verification failed:', verifyErr);
-          Alert.alert('Error', 'Payment verification failed. Please contact support.');
+          Alert.alert('Payment Error', 'Your payment was successful but verification failed. Please contact support with your Payment ID.');
         }
-      }).catch((error: any) => {
-        // Handle failure
+      } catch (error: any) {
+        // Clear recovery ID on cancel/fail
+        await SecureStore.deleteItemAsync('pending_verification_order_id');
+        
+        // Handle failure (code 2 is user cancel)
         console.log(`Razorpay Error: ${error.code} | ${error.description}`);
-        Alert.alert('Payment Failed', error.description || 'The transaction was cancelled or failed.');
-      });
+        
+        if (error.code === 2) {
+          Alert.alert('Payment Cancelled', 'The payment process was cancelled.');
+        } else {
+          Alert.alert('Payment Failed', error.description || 'The transaction was cancelled or failed.');
+        }
+      }
 
     } catch (err: any) {
       console.error('Checkout error:', err);
@@ -255,13 +300,22 @@ export default function CheckoutScreen() {
               ]}
               onPress={() => setPaymentMethod('razorpay')}
             >
-              <View style={[
-                styles.radioOuter,
-                paymentMethod === 'razorpay' && styles.radioOuterActive
-              ]}>
-                {paymentMethod === 'razorpay' && <View style={styles.radioInner} />}
+              <View style={styles.methodLeft}>
+                <View style={[
+                  styles.radioOuter,
+                  paymentMethod === 'razorpay' && styles.radioOuterActive
+                ]}>
+                  {paymentMethod === 'razorpay' && <View style={styles.radioInner} />}
+                </View>
+                <View style={styles.methodIconPlaceholder}>
+                  <IconSymbol name="creditcard.fill" size={16} color="#6b7280" />
+                </View>
+                <Text style={styles.methodText}>All Methods (Cards, UPI, NB)</Text>
               </View>
-              <Text style={styles.methodText}>All Methods (Cards, UPI, Netbanking)</Text>
+              <View style={styles.brandIcons}>
+                <Image source={{ uri: 'https://img.icons8.com/color/48/visa.png' }} style={styles.miniBrandIcon} />
+                <Image source={{ uri: 'https://img.icons8.com/color/48/mastercard.png' }} style={styles.miniBrandIcon} />
+              </View>
             </TouchableOpacity>
 
             <TouchableOpacity 
@@ -271,13 +325,20 @@ export default function CheckoutScreen() {
               ]}
               onPress={() => setPaymentMethod('google_pay')}
             >
-              <View style={[
-                styles.radioOuter,
-                paymentMethod === 'google_pay' && styles.radioOuterActive
-              ]}>
-                {paymentMethod === 'google_pay' && <View style={styles.radioInner} />}
+              <View style={styles.methodLeft}>
+                <View style={[
+                  styles.radioOuter,
+                  paymentMethod === 'google_pay' && styles.radioOuterActive
+                ]}>
+                  {paymentMethod === 'google_pay' && <View style={styles.radioInner} />}
+                </View>
+                <Image 
+                  source={{ uri: 'https://img.icons8.com/color/48/google-pay.png' }} 
+                  style={styles.methodBrandIcon} 
+                />
+                <Text style={styles.methodText}>Google Pay</Text>
               </View>
-              <Text style={styles.methodText}>Pay via Google Pay (UPI)</Text>
+              <Text style={styles.fastTag}>FAST</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
@@ -287,13 +348,20 @@ export default function CheckoutScreen() {
               ]}
               onPress={() => setPaymentMethod('phonepe')}
             >
-              <View style={[
-                styles.radioOuter,
-                paymentMethod === 'phonepe' && styles.radioOuterActive
-              ]}>
-                {paymentMethod === 'phonepe' && <View style={styles.radioInner} />}
+              <View style={styles.methodLeft}>
+                <View style={[
+                  styles.radioOuter,
+                  paymentMethod === 'phonepe' && styles.radioOuterActive
+                ]}>
+                  {paymentMethod === 'phonepe' && <View style={styles.radioInner} />}
+                </View>
+                <Image 
+                  source={{ uri: 'https://img.icons8.com/color/48/phone-pe.png' }} 
+                  style={styles.methodBrandIcon} 
+                />
+                <Text style={styles.methodText}>PhonePe</Text>
               </View>
-              <Text style={styles.methodText}>Pay via PhonePe (UPI)</Text>
+              <Text style={styles.fastTag}>FAST</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
@@ -303,13 +371,20 @@ export default function CheckoutScreen() {
               ]}
               onPress={() => setPaymentMethod('paytm')}
             >
-              <View style={[
-                styles.radioOuter,
-                paymentMethod === 'paytm' && styles.radioOuterActive
-              ]}>
-                {paymentMethod === 'paytm' && <View style={styles.radioInner} />}
+              <View style={styles.methodLeft}>
+                <View style={[
+                  styles.radioOuter,
+                  paymentMethod === 'paytm' && styles.radioOuterActive
+                ]}>
+                  {paymentMethod === 'paytm' && <View style={styles.radioInner} />}
+                </View>
+                <Image 
+                  source={{ uri: 'https://img.icons8.com/color/48/paytm.png' }} 
+                  style={styles.methodBrandIcon} 
+                />
+                <Text style={styles.methodText}>Paytm</Text>
               </View>
-              <Text style={styles.methodText}>Pay via Paytm (UPI)</Text>
+              <Text style={styles.fastTag}>FAST</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -597,17 +672,55 @@ const styles = StyleSheet.create({
   methodCard: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     padding: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#f3f4f6',
   },
   selectedMethodCard: {
     backgroundColor: '#fffbeb',
+    borderColor: '#b98b5f',
+  },
+  methodLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   methodText: {
     fontSize: 14,
     color: '#111827',
-    marginLeft: 12,
-    fontWeight: '500',
+    fontWeight: '600',
+  },
+  methodBrandIcon: {
+    width: 32,
+    height: 32,
+    resizeMode: 'contain',
+  },
+  methodIconPlaceholder: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: '#f3f4f6',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  brandIcons: {
+    flexDirection: 'row',
+    gap: 6,
+  },
+  miniBrandIcon: {
+    width: 24,
+    height: 16,
+    resizeMode: 'contain',
+  },
+  fastTag: {
+    fontSize: 10,
+    fontWeight: 'bold',
+    color: '#b98b5f',
+    backgroundColor: '#fef3c7',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    overflow: 'hidden',
   },
 });
