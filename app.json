@@ -5,12 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/pahadiapp-icon.png",
-    "splash": {
-      "image": "./assets/images/pahadiapp-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
-    },
-    "scheme": "Pahadi Collections",
+    "scheme": "pahadi-collections",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
@@ -28,9 +23,7 @@
       "package": "com.pahadi.collections",
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "foregroundImage": "./assets/images/pahadiapp-icon.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
@@ -39,7 +32,7 @@
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "plugins": [
       "./plugins/withRazorpay",
       "./plugins/withAndroidQueries",
@@ -65,7 +58,7 @@
             "compileSdkVersion": 35,
             "targetSdkVersion": 35,
             "buildToolsVersion": "35.0.0",
-            "minSdkVersion": 24,
+            "minSdkVersion": 23,
             "kotlinVersion": "2.0.21",
             "extraProguardRules": "-keepclassmembers class * { @android.webkit.JavascriptInterface <methods>; }\n-keepattributes JavascriptInterface\n-keepattributes *Annotation*\n-dontwarn com.razorpay.**\n-keep class com.razorpay.** {*;}\n-optimizations !method/inlining/*"
           }
