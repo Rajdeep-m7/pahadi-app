@@ -200,12 +200,15 @@ export default function CheckoutScreen() {
         await SecureStore.deleteItemAsync('pending_verification_order_id');
         
         // Handle failure (code 2 is user cancel)
-        console.log(`Razorpay Error: ${error.code} | ${error.description}`);
+        console.error('Full Razorpay Error:', error);
+        const errCode = error.code || 'UNKNOWN';
+        const errDesc = error.description || error.message || String(error);
+        console.log(`Razorpay Error: ${errCode} | ${errDesc}`);
         
         if (error.code === 2) {
           Alert.alert('Payment Cancelled', 'The payment process was cancelled.');
         } else {
-          Alert.alert('Payment Failed', error.description || 'The transaction was cancelled or failed.');
+          Alert.alert('Payment Failed', errDesc || 'The transaction was cancelled or failed.');
         }
       }
 

@@ -156,9 +156,9 @@ export default function RootLayout() {
 
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-        <Stack>
-          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+        <Stack initialRouteName="(drawer)">
           <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
+          <Stack.Screen name="(auth)" options={{ headerShown: false }} />
           <Stack.Screen name="legal" options={{ headerShown: false }} />
           <Stack.Screen name="checkout" options={{ title: 'Checkout' }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />

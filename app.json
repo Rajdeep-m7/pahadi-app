@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Pahadi Collections",
+    "name": "pahadi-collections",
     "slug": "pahadi-collections",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/pahadiapp-icon.png",
-    "scheme": "pahadi-collections",
+    "scheme": "pahadicollections",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
@@ -40,7 +40,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/images/pahadiapp-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff",
@@ -60,7 +60,7 @@
             "buildToolsVersion": "35.0.0",
             "minSdkVersion": 23,
             "kotlinVersion": "2.0.21",
-            "extraProguardRules": "-keepclassmembers class * { @android.webkit.JavascriptInterface <methods>; }\n-keepattributes JavascriptInterface\n-keepattributes *Annotation*\n-dontwarn com.razorpay.**\n-keep class com.razorpay.** {*;}\n-optimizations !method/inlining/*"
+            "extraProguardRules": "-keepclassmembers class * { @android.webkit.JavascriptInterface <methods>; }\n-keepattributes JavascriptInterface\n-keepattributes *Annotation*\n-dontwarn com.razorpay.**\n-keep class com.razorpay.** {*;}\n-optimizations !method/inlining/*\n-keepclasseswithmembers class * { public void onPayment*(...); }"
           }
         }
       ]
