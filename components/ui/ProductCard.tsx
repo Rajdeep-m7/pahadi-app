@@ -3,6 +3,7 @@ import { View, Text, Image, StyleSheet, TouchableOpacity, Dimensions } from 'rea
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { router } from 'expo-router';
 import { useWishlistStore } from '@/store/wishlistStore';
+import { useCartStore } from '@/store/cartStore';
 
 const { width } = Dimensions.get('window');
 // Screen - 20 (side padding) - 10 (gap) = width - 30
@@ -46,6 +47,10 @@ export default function ProductCard({
 }: ProductCardProps) {
   const { toggleItem, isInWishlist } = useWishlistStore();
   const isWishlisted = variantId ? isInWishlist(variantId) : false;
+
+  const cartItems = useCartStore((state) => state.items);
+  const updateQuantity = useCartStore((state) => state.updateQuantity);
+  const cartItem = variantId ? cartItems.find((item) => item.variantId === variantId) : null;
 
   const handlePress = () => {
     if (onPress) {
@@ -150,14 +155,33 @@ export default function ProductCard({
 
         {/* Action Button */}
         {!isOutOfStock ? (
-          <TouchableOpacity 
-            style={styles.addButton} 
-            onPress={onAddToCart}
-            activeOpacity={0.8}
-          >
-            <IconSymbol name="cart.fill" size={16} color="#fff" />
-            <Text style={styles.addButtonText}>Quick Add</Text>
-          </TouchableOpacity>
+          cartItem ? (
+            <View style={styles.quantityContainer}>
+              <TouchableOpacity 
+                style={styles.quantityBtn}
+                onPress={() => updateQuantity(variantId!, cartItem.quantity - 1)}
+              >
+                <IconSymbol name="minus" size={14} color="#fff" />
+              </TouchableOpacity>
+              <Text style={styles.quantityText}>{cartItem.quantity}</Text>
+              <TouchableOpacity 
+                style={styles.quantityBtn}
+                onPress={() => updateQuantity(variantId!, cartItem.quantity + 1)}
+                disabled={cartItem.quantity >= (attributes?.stocks as any || 99)}
+              >
+                <IconSymbol name="plus" size={14} color="#fff" />
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity 
+              style={styles.addButton} 
+              onPress={onAddToCart}
+              activeOpacity={0.8}
+            >
+              <IconSymbol name="cart.fill" size={16} color="#fff" />
+              <Text style={styles.addButtonText}>Quick Add</Text>
+            </TouchableOpacity>
+          )
         ) : (
           <View style={[styles.addButton, styles.addButtonDisabled]}>
             <Text style={styles.addButtonTextDisabled}>Unavailable</Text>
@@ -332,5 +356,23 @@ const styles = StyleSheet.create({
     color: '#9ca3af',
     fontSize: 12,
     fontWeight: '700',
+  },
+  quantityContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#b98b5f',
+    borderRadius: 6,
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    marginTop: 2,
+  },
+  quantityBtn: {
+    padding: 4,
+  },
+  quantityText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
   },
 });

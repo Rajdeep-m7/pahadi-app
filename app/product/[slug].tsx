@@ -48,6 +48,12 @@ export default function ProductScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
+        <Stack.Screen 
+          options={{ 
+            title: 'Loading...', 
+            headerShown: true,
+          }} 
+        />
         <ActivityIndicator size="large" color="#f59e0b" />
         <Text style={styles.loadingText}>Loading details...</Text>
       </View>

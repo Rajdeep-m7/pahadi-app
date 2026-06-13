@@ -1,16 +1,19 @@
-import { Stack, router } from 'expo-router';
+import { Stack, router, Href } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { useEffect, useRef, useState } from 'react';
-import { Animated, StyleSheet, Text, View } from 'react-native';
+import { Animated, StyleSheet, Text, View, ActivityIndicator } from 'react-native';
 import { useCartStore } from '@/store/cartStore';
 import { useWishlistStore } from '@/store/wishlistStore';
 import { useAuthStore } from '@/store/authStore';
 import { useCartSync } from '@/hooks/useCartSync';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Notifications from 'expo-notifications';
+import * as SecureStore from '@/utils/storage';
 import { registerForPushNotificationsAsync } from '@/utils/notifications';
+import axios from 'axios';
+import { BASE_URL } from '@/constants/config';
 
 // Configure how notifications should display when the app is in the foreground
 Notifications.setNotificationHandler({
@@ -72,9 +75,9 @@ export default function RootLayout() {
       const url = lastNotificationResponse.notification.request.content.data.url;
       console.log('Notification response received, navigating to:', url);
       // Ensure we only navigate once the app is ready and hydrated
-      if (isReady && cartHydrated && authInitialized) {
+      if (typeof url === 'string' && isReady && cartHydrated && authInitialized) {
         setTimeout(() => {
-          router.push(url);
+          router.push(url as Href);
         }, 500);
       }
     }
@@ -142,6 +145,15 @@ export default function RootLayout() {
     }
   }, [cartHydrated, wishlistHydrated, authInitialized, isReady, isAuthenticated]);
 
+  if (!isReady) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#f59e0b" />
+        <Text style={styles.loadingText}>Loading...</Text>
+      </View>
+    );
+  }
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
         <Stack>
@@ -181,5 +193,17 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     textAlign: 'center',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#6b7280',
+    fontWeight: '600',
   },
 });

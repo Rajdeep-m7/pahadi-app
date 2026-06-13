@@ -3,6 +3,9 @@ import * as SecureStore from '@/utils/storage';
 import axios from 'axios';
 import { BASE_URL } from '@/constants/config';
 
+// Set global client type header for all requests
+axios.defaults.headers.common['x-client-type'] = 'mobile';
+
 interface User {
   _id: string;
   name: string;
@@ -38,12 +41,12 @@ const updateAxiosHeader = (token: string | null) => {
 let isRefreshing = false;
 let failedQueue: any[] = [];
 
-const processQueue = (error: any, token: string | null = null) => {
+const processQueue = (error: any) => {
   failedQueue.forEach((prom) => {
     if (error) {
       prom.reject(error);
     } else {
-      prom.resolve(token);
+      prom.resolve();
     }
   });
   failedQueue = [];
@@ -60,8 +63,10 @@ axios.interceptors.response.use(
         return new Promise(function (resolve, reject) {
           failedQueue.push({ resolve, reject });
         })
-          .then((token) => {
-            originalRequest.headers['Authorization'] = 'Bearer ' + token;
+          .then(() => {
+            // Remove the stale Authorization header to force axios to use the new global default
+            delete originalRequest.headers['Authorization'];
+            originalRequest._retry = true;
             return axios(originalRequest);
           })
           .catch((err) => {
@@ -76,26 +81,24 @@ axios.interceptors.response.use(
         const storedRefreshToken = await SecureStore.getItemAsync('userRefreshToken');
         if (!storedRefreshToken) throw new Error('No refresh token');
 
-        // Use a clean axios instance to avoid sending the expired accessToken
-        // in the Authorization headers and to bypass the global interceptor.
         const refreshInstance = axios.create();
         const { data } = await refreshInstance.post(`${BASE_URL}/auth/refresh-token`, 
-          { refreshToken: storedRefreshToken },
+          { refreshToken: storedRefreshToken, tokenType: 'customer' },
           { headers: { 'x-client-type': 'mobile' } }
         );
 
         const { accessToken, refreshToken: newRefreshToken } = data.data;
         
+        // Await the full update including SecureStore
         await useAuthStore.getState().setTokens(accessToken, newRefreshToken);
         
-        processQueue(null, accessToken);
-        originalRequest.headers['Authorization'] = 'Bearer ' + accessToken;
+        processQueue(null);
+        
+        delete originalRequest.headers['Authorization'];
         return axios(originalRequest);
       } catch (refreshError: any) {
-        processQueue(refreshError, null);
+        processQueue(refreshError);
         
-        // Only logout if the backend explicitly rejected the refresh token (4xx error)
-        // If it's a network error or 500 error, keep the session intact
         if (refreshError.response && refreshError.response.status >= 400 && refreshError.response.status < 500) {
           await useAuthStore.getState().logout();
         }
@@ -118,10 +121,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   isInitialized: false,
 
   setTokens: async (accessToken, refreshToken) => {
-    await SecureStore.setItemAsync('userToken', accessToken);
-    await SecureStore.setItemAsync('userRefreshToken', refreshToken);
+    // 1. Update state and axios synchronously to prevent race conditions for new requests
     updateAxiosHeader(accessToken);
     set({ token: accessToken, refreshToken, isAuthenticated: true });
+
+    // 2. Persist to SecureStore in background (or await if you want to be 100% sure)
+    await Promise.all([
+      SecureStore.setItemAsync('userToken', accessToken),
+      SecureStore.setItemAsync('userRefreshToken', refreshToken)
+    ]);
   },
 
   setUser: (user) => {

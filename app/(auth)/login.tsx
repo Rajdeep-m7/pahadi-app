@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -25,6 +25,17 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
+  const [timer, setTimer] = useState(0);
+
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (timer > 0) {
+      interval = setInterval(() => {
+        setTimer((prev) => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [timer]);
   
   const syncCart = useCartStore((state) => state.syncToBackend);
   const setTokens = useAuthStore((state) => state.setTokens);
@@ -45,6 +56,7 @@ export default function LoginScreen() {
     try {
       await axios.post(`${BASE_URL}/auth/login/send-otp`, { phone });
       setOtpSent(true);
+      setTimer(60); // 60 seconds countdown
       setMessage('OTP sent on WhatsApp.');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Failed to send OTP.');
@@ -168,17 +180,36 @@ export default function LoginScreen() {
             </TouchableOpacity>
 
             {otpSent && (
-              <TouchableOpacity 
-                style={styles.resendButton}
-                onPress={() => {
-                  setOtpSent(false);
-                  setOtp('');
-                  setError('');
-                  setMessage('');
-                }}
-              >
-                <Text style={styles.resendText}>Change Phone Number</Text>
-              </TouchableOpacity>
+              <View style={{ marginTop: 20 }}>
+                {timer > 0 ? (
+                  <Text style={[styles.resendText, { textAlign: 'center' }]}>
+                    Resend OTP in {timer} seconds
+                  </Text>
+                ) : (
+                  <TouchableOpacity 
+                    style={styles.resendButton}
+                    onPress={handleSendOtp}
+                    disabled={loading}
+                  >
+                    <Text style={[styles.resendText, { color: '#111827', fontWeight: '600' }]}>
+                      Resend OTP
+                    </Text>
+                  </TouchableOpacity>
+                )}
+                
+                <TouchableOpacity 
+                  style={[styles.resendButton, { marginTop: 12 }]}
+                  onPress={() => {
+                    setOtpSent(false);
+                    setOtp('');
+                    setError('');
+                    setMessage('');
+                    setTimer(0);
+                  }}
+                >
+                  <Text style={styles.resendText}>Change Phone Number</Text>
+                </TouchableOpacity>
+              </View>
             )}
           </View>
         </ScrollView>

@@ -11,6 +11,7 @@ import {
   Image,
   Linking,
   Platform,
+  AppState,
 } from 'react-native';
 import RazorpayCheckout from 'react-native-razorpay';
 import { router, Stack } from 'expo-router';
@@ -43,6 +44,19 @@ export default function CheckoutScreen() {
   const [processing, setProcessing] = useState(false);
   
   const [paymentMethod, setPaymentMethod] = useState<'razorpay' | 'google_pay' | 'phonepe' | 'paytm'>('razorpay');
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener('change', (nextAppState) => {
+      if (nextAppState === 'active' && processing) {
+        console.log('App resumed, resetting processing state.');
+        setProcessing(false);
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [processing]);
 
   useEffect(() => {
     fetchAddresses();

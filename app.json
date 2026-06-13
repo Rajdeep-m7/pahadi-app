@@ -1,11 +1,16 @@
 {
   "expo": {
-    "name": "pahadi-app",
-    "slug": "pahadi-app",
+    "name": "Pahadi Collections",
+    "slug": "pahadi-collections",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "pahadiapp",
+    "icon": "./assets/images/pahadiapp-icon.png",
+    "splash": {
+      "image": "./assets/images/pahadiapp-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "scheme": "Pahadi Collections",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
@@ -34,7 +39,7 @@
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
-    "newArchEnabled": false,
+    "newArchEnabled": true,
     "plugins": [
       "./plugins/withRazorpay",
       "./plugins/withAndroidQueries",
@@ -60,7 +65,7 @@
             "compileSdkVersion": 35,
             "targetSdkVersion": 35,
             "buildToolsVersion": "35.0.0",
-            "minSdkVersion": 23,
+            "minSdkVersion": 24,
             "kotlinVersion": "2.0.21"
           }
         }

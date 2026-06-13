@@ -3,12 +3,13 @@ import { CustomHeader } from '@/components/CustomHeader';
 import { useEffect, useState } from 'react';
 import { BASE_URL } from '@/constants/config';
 import axios from 'axios';
-import { Image, Text, View, StyleSheet } from 'react-native';
+import { Image, Text, View, StyleSheet, TouchableOpacity } from 'react-native';
 import { DrawerContentScrollView, DrawerItemList, DrawerItem } from '@react-navigation/drawer';
 import { Colors } from '@/constants/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { SvgUri } from 'react-native-svg';
 
 interface Category {
   _id: string;
@@ -25,11 +26,19 @@ function CustomDrawerContent(props: any) {
   return (
     <DrawerContentScrollView {...props} contentContainerStyle={{ paddingTop: 0 }}>
       <View style={[styles.drawerHeader, { paddingTop: insets.top + 20 }]}>
-        <Image
-          source={require('@/assets/images/favicon.png')}
-          style={styles.logo}
-        />
-        <Text style={styles.brandName}>Pahadi Collections</Text>
+        <TouchableOpacity 
+          onPress={() => {
+            props.navigation.closeDrawer();
+            router.replace('/(drawer)/(tabs)');
+          }}
+          style={{ alignItems: 'center' }}
+        >
+          <Image
+            source={require('@/assets/images/favicon.png')}
+            style={styles.logo}
+          />
+          <Text style={styles.brandName}>Pahadi Collections</Text>
+        </TouchableOpacity>
       </View>
       
       <DrawerItemList {...props} />
@@ -43,18 +52,21 @@ function CustomDrawerContent(props: any) {
             key={category._id}
             label={category.name}
             onPress={() => {
+              props.navigation.closeDrawer();
               router.push(`/category/${category.slug || category._id}`);
             }}
-            icon={() => (
-              category.iconUrl ? (
-                <Image
-                  source={{ uri: category.iconUrl }}
-                  style={{ width: 22, height: 22, borderRadius: 4, resizeMode: 'contain' }}
-                />
-              ) : (
-                <IconSymbol name="list.bullet.rectangle" size={20} color="#9ca3af" />
-              )
-            )}
+            icon={() => {
+              if (category.iconUrl) {
+                return (
+                  <SvgUri
+                    uri={category.iconUrl}
+                    width="22"
+                    height="22"
+                  />
+                );
+              }
+              return <IconSymbol name="list.bullet.rectangle" size={20} color="#9ca3af" />;
+            }}
           />
         ))
       ) : (

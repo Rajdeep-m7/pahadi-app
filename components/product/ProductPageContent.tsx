@@ -36,8 +36,12 @@ export default function ProductPageContent({
   const { currentVariant, siblingOptions } = productData;
   const productDetails = currentVariant.productId;
   const addToCart = useCartStore((state) => state.addToCart);
+  const updateQuantity = useCartStore((state) => state.updateQuantity);
+  const cartItems = useCartStore((state) => state.items);
   const { toggleItem, isInWishlist } = useWishlistStore();
   const isWishlisted = isInWishlist(currentVariant._id);
+
+  const cartItem = cartItems.find((item) => item.variantId === currentVariant._id);
 
   const [mainImage, setMainImage] = useState(currentVariant.coverImage.url);
   const [pincode, setPincode] = useState("");
@@ -449,7 +453,7 @@ export default function ProductPageContent({
               { icon: "heart", label: "HANDMADE", sub: "With Love" },
             ].map((b, i) => (
               <View key={i} style={styles.badgeItem}>
-                <IconSymbol name={b.icon as any} size={20} color="#f59e0b" />
+                <IconSymbol name={b.icon as any} size={24} color="#f59e0b" />
                 <View>
                   <Text style={styles.badgeLabel}>{b.label}</Text>
                   <Text style={styles.badgeSub}>{b.sub}</Text>
@@ -497,26 +501,45 @@ export default function ProductPageContent({
 
       {/* Sticky Bottom Actions */}
       <View style={styles.stickyFooter}>
-        <TouchableOpacity
-          style={[
-            styles.footerBtn,
-            styles.cartBtn,
-            isOutOfStock && styles.disabledBtn,
-          ]}
-          onPress={handleAddToCart}
-          disabled={isOutOfStock}
-        >
-          <IconSymbol
-            name="cart.fill"
-            size={18}
-            color={isOutOfStock ? "#9ca3af" : "#111827"}
-          />
-          <Text
-            style={[styles.cartBtnText, isOutOfStock && styles.disabledText]}
+        {cartItem ? (
+          <View style={[styles.footerBtn, styles.quantityContainer]}>
+            <TouchableOpacity
+              style={styles.quantityBtn}
+              onPress={() => updateQuantity(currentVariant._id, cartItem.quantity - 1)}
+            >
+              <IconSymbol name="minus" size={18} color="#fff" />
+            </TouchableOpacity>
+            <Text style={styles.quantityText}>{cartItem.quantity}</Text>
+            <TouchableOpacity
+              style={styles.quantityBtn}
+              onPress={() => updateQuantity(currentVariant._id, cartItem.quantity + 1)}
+              disabled={cartItem.quantity >= (currentVariant.stocks || 99)}
+            >
+              <IconSymbol name="plus" size={18} color="#fff" />
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <TouchableOpacity
+            style={[
+              styles.footerBtn,
+              styles.cartBtn,
+              isOutOfStock && styles.disabledBtn,
+            ]}
+            onPress={handleAddToCart}
+            disabled={isOutOfStock}
           >
-            ADD TO CART
-          </Text>
-        </TouchableOpacity>
+            <IconSymbol
+              name="cart.fill"
+              size={18}
+              color={isOutOfStock ? "#9ca3af" : "#fff"}
+            />
+            <Text
+              style={[styles.cartBtnText, isOutOfStock && styles.disabledText]}
+            >
+              ADD TO CART
+            </Text>
+          </TouchableOpacity>
+        )}
         <TouchableOpacity
           style={[
             styles.footerBtn,
@@ -741,7 +764,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
   pincodeButton: {
-    backgroundColor: "#111827",
+    backgroundColor: "#b98b5f",
     paddingHorizontal: 20,
     justifyContent: "center",
     borderRadius: 10,
@@ -829,20 +852,29 @@ const styles = StyleSheet.create({
   },
   specRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    paddingVertical: 10,
+    alignItems: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 12,
     borderBottomWidth: 1,
-    borderBottomColor: "#f9fafb",
+    borderBottomColor: "#f3f4f6",
+    backgroundColor: "#f9fafb",
+    borderRadius: 8,
+    marginBottom: 8,
   },
   specKey: {
-    fontSize: 12,
+    flex: 1,
+    fontSize: 13,
     color: "#6b7280",
-    fontWeight: "600",
+    fontWeight: "bold",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   specVal: {
-    fontSize: 12,
+    flex: 1.5,
+    fontSize: 14,
     color: "#111827",
     fontWeight: "700",
+    textAlign: "right",
   },
   badgesGrid: {
     flexDirection: "row",
@@ -862,12 +894,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   badgeLabel: {
-    fontSize: 9,
+    fontSize: 11,
     fontWeight: "900",
     color: "#111827",
   },
   badgeSub: {
-    fontSize: 8,
+    fontSize: 10,
     color: "#9ca3af",
     fontWeight: "bold",
   },
@@ -932,16 +964,33 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     gap: 8,
   },
+  quantityContainer: {
+    backgroundColor: "#b98b5f",
+    justifyContent: "space-between",
+    paddingHorizontal: 15,
+  },
+  quantityBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  quantityText: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "bold",
+  },
   cartBtn: {
-    backgroundColor: "#fff",
-    borderWidth: 2,
-    borderColor: "#111827",
+    backgroundColor: "#b98b5f",
+    borderWidth: 0,
   },
   buyBtn: {
-    backgroundColor: "#111827",
+    backgroundColor: "#006a4e",
   },
   cartBtnText: {
-    color: "#111827",
+    color: "#fff",
     fontSize: 13,
     fontWeight: "900",
     letterSpacing: 0.5,
