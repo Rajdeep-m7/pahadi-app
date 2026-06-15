@@ -24,8 +24,9 @@
       }
     },
     "android": {
-      "versionCode": 1,
       "package": "com.pahadi.collections",
+      "googleServicesFile": "./google-services.json",
+      "versionCode": 1,
       "permissions": [
         "android.permission.INTERNET",
         "android.permission.READ_EXTERNAL_STORAGE",

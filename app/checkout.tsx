@@ -294,33 +294,38 @@ export default function CheckoutScreen() {
         // Clear recovery ID on cancel/fail
         await SecureStore.deleteItemAsync('pending_verification_order_id');
         
-        // Handle failure (code 2 is user cancel)
-        console.error('Full Razorpay Error:', error);
+        console.log('[Razorpay Error]:', error);
         
-        let errDesc = 'The transaction was cancelled or failed.';
-        
-        // Try to parse the error if it's a string (Razorpay often returns raw JSON strings)
+        let isCancelled = false;
+        let errorMessage = 'Something went wrong with the payment. Please try again or use a different payment method.';
+
+        // Razorpay error can be a JSON string or an object
+        let errorData = error;
         if (typeof error === 'string') {
           try {
-            const parsed = JSON.parse(error);
-            if (parsed.error && parsed.error.description) {
-              errDesc = parsed.error.description;
-            } else if (parsed.description) {
-              errDesc = parsed.description;
-            }
+            errorData = JSON.parse(error);
           } catch (e) {
-            errDesc = error;
+            // Not JSON, use as is if it's a simple message
           }
-        } else if (error.description) {
-          errDesc = error.description;
-        } else if (error.message) {
-          errDesc = error.message;
         }
 
-        if (error.code === 2 || (typeof error === 'string' && error.includes('"code":2'))) {
-          Alert.alert('Payment Cancelled', 'The payment process was cancelled.');
+        // Check for cancellation (Code 2 is user cancelled)
+        if (errorData?.code === 2 || (typeof error === 'string' && error.includes('"code":2'))) {
+          isCancelled = true;
+          errorMessage = 'The payment process was cancelled. You can try again whenever you are ready.';
+        } else if (errorData?.error?.description) {
+          errorMessage = errorData.error.description;
+        } else if (errorData?.description) {
+          errorMessage = errorData.description;
+        } else if (typeof error === 'string' && error.length < 100 && !error.includes('{')) {
+          // If it's a short non-json string, use it
+          errorMessage = error;
+        }
+
+        if (isCancelled) {
+          Alert.alert('Payment Cancelled', errorMessage);
         } else {
-          Alert.alert('Payment Failed', errDesc);
+          Alert.alert('Payment Failed', errorMessage);
         }
       }
 
