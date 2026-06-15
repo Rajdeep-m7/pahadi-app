@@ -48,6 +48,7 @@
     "newArchEnabled": false,
     "plugins": [
       "@react-native-firebase/app",
+      "@react-native-firebase/messaging",
       "./plugins/withRazorpay",
       "./plugins/withAndroidQueries",
       "expo-router",
@@ -84,9 +85,7 @@
             "extraProguardRules": "-keepclassmembers class * { @android.webkit.JavascriptInterface <methods>; }\n-keepattributes JavascriptInterface\n-keepattributes *Annotation*\n-dontwarn com.razorpay.**\n-keep class com.razorpay.** {*;}\n-optimizations !method/inlining/*\n-keepclasseswithmembers class * { public void onPayment*(...); }"
           }
         }
-      ],
-      "@react-native-firebase/app",
-      "@react-native-firebase/messaging"
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
