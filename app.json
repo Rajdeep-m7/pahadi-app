@@ -7,6 +7,10 @@
     "icon": "./assets/images/pahadiapp-icon.png",
     "scheme": "pahadicollections",
     "userInterfaceStyle": "automatic",
+    "notification": {
+      "icon": "./assets/images/notificationIcon.png",
+      "color": "#012601"
+    },
     "ios": {
       "supportsTablet": true,
       "infoPlist": {

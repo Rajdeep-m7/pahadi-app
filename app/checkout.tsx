@@ -296,14 +296,31 @@ export default function CheckoutScreen() {
         
         // Handle failure (code 2 is user cancel)
         console.error('Full Razorpay Error:', error);
-        const errCode = error.code || 'UNKNOWN';
-        const errDesc = error.description || error.message || String(error);
-        console.log(`Razorpay Error: ${errCode} | ${errDesc}`);
         
-        if (error.code === 2) {
+        let errDesc = 'The transaction was cancelled or failed.';
+        
+        // Try to parse the error if it's a string (Razorpay often returns raw JSON strings)
+        if (typeof error === 'string') {
+          try {
+            const parsed = JSON.parse(error);
+            if (parsed.error && parsed.error.description) {
+              errDesc = parsed.error.description;
+            } else if (parsed.description) {
+              errDesc = parsed.description;
+            }
+          } catch (e) {
+            errDesc = error;
+          }
+        } else if (error.description) {
+          errDesc = error.description;
+        } else if (error.message) {
+          errDesc = error.message;
+        }
+
+        if (error.code === 2 || (typeof error === 'string' && error.includes('"code":2'))) {
           Alert.alert('Payment Cancelled', 'The payment process was cancelled.');
         } else {
-          Alert.alert('Payment Failed', errDesc || 'The transaction was cancelled or failed.');
+          Alert.alert('Payment Failed', errDesc);
         }
       }
 
@@ -335,7 +352,7 @@ export default function CheckoutScreen() {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Shipping Address</Text>
-            <TouchableOpacity onPress={() => router.push('/profile/addresses')}>
+            <TouchableOpacity onPress={() => router.push({ pathname: '/profile/addresses', params: { returnTo: 'checkout' } } as any)}>
               <Text style={styles.actionText}>Change</Text>
             </TouchableOpacity>
           </View>
@@ -343,7 +360,7 @@ export default function CheckoutScreen() {
           {addresses.length === 0 ? (
             <TouchableOpacity 
               style={styles.emptyAddress}
-              onPress={() => router.push('/profile/addresses')}
+              onPress={() => router.push({ pathname: '/profile/addresses', params: { returnTo: 'checkout' } } as any)}
             >
               <IconSymbol name="plus.circle" size={24} color="#b98b5f" />
               <Text style={styles.addAddressText}>Add Shipping Address</Text>

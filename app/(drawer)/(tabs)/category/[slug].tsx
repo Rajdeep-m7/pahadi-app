@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { View, StyleSheet, ActivityIndicator, FlatList, Text, TouchableOpacity, Modal, ScrollView, SafeAreaView, TextInput } from 'react-native';
 import { useLocalSearchParams, Stack, router } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import axios from 'axios';
 import { BASE_URL } from '@/constants/config';
 import ProductCard from '@/components/ui/ProductCard';
@@ -34,6 +35,7 @@ type SortOption = 'latest' | 'lowToHigh' | 'highToLow';
 
 export default function CategoryPage() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
+  const insets = useSafeAreaInsets();
   const [products, setProducts] = useState<Product[]>([]);
   const [allCategories, setAllCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
@@ -181,9 +183,9 @@ export default function CategoryPage() {
 
   const priceFilters = [
     { label: 'Any Price', value: null },
-    { label: 'Under ₹5,000', value: 5000 },
-    { label: 'Under ₹15,000', value: 15000 },
-    { label: 'Under ₹50,000', value: 50000 },
+    { label: 'Under ₹500', value: 500 },
+    { label: 'Under ₹1000', value: 1000 },
+    { label: 'Under ₹1500', value: 1500 },
   ];
 
   return (
@@ -291,8 +293,8 @@ export default function CategoryPage() {
       </Modal>
 
       <Modal visible={filterModalVisible} animationType="slide" onRequestClose={() => setFilterModalVisible(false)}>
-        <SafeAreaView style={styles.filterModalContainer}>
-          <View style={styles.filterHeader}>
+        <View style={styles.filterModalContainer}>
+          <View style={[styles.filterHeader, { paddingTop: Math.max(insets.top, 20) }]}>
             <Text style={styles.filterTitle}>Filters</Text>
             <TouchableOpacity onPress={() => setFilterModalVisible(false)}>
               <IconSymbol name="xmark" size={24} color="#111827" />
@@ -406,7 +408,7 @@ export default function CategoryPage() {
               <Text style={styles.applyBtnText}>Apply</Text>
             </TouchableOpacity>
           </View>
-        </SafeAreaView>
+        </View>
       </Modal>
 
     </View>
@@ -487,7 +489,7 @@ const styles = StyleSheet.create({
   },
   listContent: {
     padding: 10,
-    paddingBottom: 40,
+    paddingBottom: 100,
   },
   columnWrapper: {
     justifyContent: 'space-between',

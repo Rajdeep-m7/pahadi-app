@@ -244,6 +244,7 @@ export default function HomeScreen() {
             </View>
 
             <Footer />
+            <View style={{ height: 80 }} />
           </>
         )}
       </ScrollView>

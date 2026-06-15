@@ -14,9 +14,10 @@ import {
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
-import { router, Stack, useFocusEffect } from 'expo-router';
+import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BASE_URL } from '@/constants/config';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 
@@ -34,13 +35,14 @@ interface Address {
 }
 
 export default function AddressesScreen() {
+  const { returnTo } = useLocalSearchParams();
+  const insets = useSafeAreaInsets();
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
   
   // Form State
-  const [label, setLabel] = useState('Home');
   const [fullName, setFullName] = useState('');
   const [phone, setPhone] = useState('');
   const [addressLine1, setAddressLine1] = useState('');
@@ -49,6 +51,9 @@ export default function AddressesScreen() {
   const [state, setState] = useState('');
   const [postalCode, setPinCode] = useState('');
   const [saving, setSaving] = useState(false);
+  const [pincodeLoading, setPincodeLoading] = useState(false);
+  const [pincodeError, setPincodeError] = useState('');
+  const [pincodeSuccess, setPincodeSuccess] = useState('');
 
   const fetchAddresses = async () => {
     const token = await SecureStore.getItemAsync('userToken');
@@ -73,7 +78,6 @@ export default function AddressesScreen() {
   );
 
   const resetForm = () => {
-    setLabel('Home');
     setFullName('');
     setPhone('');
     setAddressLine1('');
@@ -82,6 +86,9 @@ export default function AddressesScreen() {
     setState('');
     setPinCode('');
     setEditingAddressId(null);
+    setPincodeError('');
+    setPincodeSuccess('');
+    setPincodeLoading(false);
   };
 
   const handleOpenAdd = () => {
@@ -91,7 +98,6 @@ export default function AddressesScreen() {
 
   const handleOpenEdit = (address: Address) => {
     setEditingAddressId(address._id);
-    setLabel(address.label);
     setFullName(address.fullName);
     setPhone(address.phone);
     setAddressLine1(address.addressLine1);
@@ -100,7 +106,65 @@ export default function AddressesScreen() {
     setState(address.state);
     setPinCode(address.postalCode);
     setModalVisible(true);
+    setPincodeError('');
+    setPincodeSuccess('');
+    setPincodeLoading(false);
   };
+
+  useEffect(() => {
+    const validatePincode = async () => {
+      if (postalCode.length !== 6) {
+        setPincodeError('');
+        setPincodeSuccess('');
+        return;
+      }
+
+      setPincodeLoading(true);
+      setPincodeError('');
+      setPincodeSuccess('');
+
+      try {
+        // 1. Fetch City & State from public API
+        const pinResponse = await axios.get(`https://api.postalpincode.in/pincode/${postalCode}`);
+        const pinData = pinResponse.data[0];
+        
+        if (pinData.Status === 'Success' && pinData.PostOffice && pinData.PostOffice.length > 0) {
+          const postOffice = pinData.PostOffice[0];
+          setCity(postOffice.District || postOffice.Block || '');
+          setState(postOffice.State || '');
+        }
+
+        // 2. Check Serviceability via Shiprocket
+        const { data } = await axios.get(`${BASE_URL}/shiprocket/serviceability`, {
+          params: {
+            pickup_postcode: '110001', // Default pickup pincode
+            delivery_postcode: postalCode,
+            weight: '0.5',
+            cod: '1',
+          },
+        });
+
+        if (data.success && data.data?.status === 200) {
+          const etd = data.data.data?.available_courier_companies?.[0]?.etd;
+          setPincodeSuccess(`Delivery available${etd ? `. Expected by: ${etd}` : ''}`);
+        } else {
+          setPincodeError('Delivery not available for this pincode');
+        }
+      } catch (error) {
+        console.error('Pincode validation error:', error);
+        setPincodeError('Delivery not available for this pincode');
+      } finally {
+        setPincodeLoading(false);
+      }
+    };
+
+    if (postalCode.length === 6) {
+      validatePincode();
+    } else {
+      setPincodeError('');
+      setPincodeSuccess('');
+    }
+  }, [postalCode]);
 
   const handleSaveAddress = async () => {
     if (!fullName || !phone || !addressLine1 || !city || !state || !postalCode) {
@@ -122,7 +186,6 @@ export default function AddressesScreen() {
     const token = await SecureStore.getItemAsync('userToken');
     try {
       const payload = { 
-        label: label.trim() || 'Home', 
         fullName, 
         phone, 
         addressLine1, 
@@ -149,6 +212,10 @@ export default function AddressesScreen() {
       setModalVisible(false);
       fetchAddresses();
       resetForm();
+
+      if (returnTo === 'checkout') {
+        router.back();
+      }
     } catch (error: any) {
       Alert.alert('Error', error.response?.data?.message || 'Failed to save address.');
     } finally {
@@ -208,13 +275,12 @@ export default function AddressesScreen() {
         renderItem={({ item }) => (
           <View style={[styles.addressCard, item.isDefault && styles.defaultCard]}>
             <View style={styles.cardHeader}>
-              <View style={styles.labelBadge}>
-                <Text style={styles.labelText}>{item.label || 'HOME'}</Text>
-              </View>
-              {item.isDefault && (
+              {item.isDefault ? (
                 <View style={styles.defaultBadge}>
                   <Text style={styles.defaultText}>DEFAULT</Text>
                 </View>
+              ) : (
+                <View />
               )}
             </View>
             
@@ -257,7 +323,10 @@ export default function AddressesScreen() {
         }
       />
 
-      <TouchableOpacity style={styles.addButton} onPress={handleOpenAdd}>
+      <TouchableOpacity 
+        style={[styles.addButton, { bottom: Math.max(20, insets.bottom + 10) }]} 
+        onPress={handleOpenAdd}
+      >
         <IconSymbol name="plus" size={20} color="#fff" />
         <Text style={styles.addButtonText}>Add New Address</Text>
       </TouchableOpacity>
@@ -279,11 +348,6 @@ export default function AddressesScreen() {
             </View>
 
             <ScrollView style={styles.modalForm} showsVerticalScrollIndicator={false}>
-              <View style={styles.inputGroup}>
-                <Text style={styles.modalLabel}>Address Label (e.g. Home, Office)</Text>
-                <TextInput style={styles.modalInput} value={label} onChangeText={setLabel} placeholder="Home" />
-              </View>
-
               <View style={styles.inputGroup}>
                 <Text style={styles.modalLabel}>Full Name</Text>
                 <TextInput style={styles.modalInput} value={fullName} onChangeText={setFullName} placeholder="John Doe" />
@@ -312,6 +376,9 @@ export default function AddressesScreen() {
                 <View style={[styles.inputGroup, { flex: 1 }]}>
                   <Text style={styles.modalLabel}>Pincode</Text>
                   <TextInput style={styles.modalInput} value={postalCode} onChangeText={setPinCode} placeholder="400001" keyboardType="numeric" maxLength={6} />
+                  {pincodeLoading && <Text style={styles.pincodeLoading}>Checking...</Text>}
+                  {pincodeError ? <Text style={styles.pincodeError}>{pincodeError}</Text> : null}
+                  {pincodeSuccess ? <Text style={styles.pincodeSuccess}>{pincodeSuccess}</Text> : null}
                 </View>
               </View>
 
@@ -321,9 +388,9 @@ export default function AddressesScreen() {
               </View>
 
               <TouchableOpacity 
-                style={[styles.submitBtn, saving && styles.disabledButton]} 
+                style={[styles.submitBtn, (saving || pincodeLoading || !!pincodeError) && styles.disabledButton]} 
                 onPress={handleSaveAddress}
-                disabled={saving}
+                disabled={saving || pincodeLoading || !!pincodeError}
               >
                 {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>Save Address</Text>}
               </TouchableOpacity>
@@ -528,5 +595,25 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  pincodeLoading: {
+    fontSize: 10,
+    color: '#6b7280',
+    marginTop: 4,
+    marginLeft: 4,
+  },
+  pincodeError: {
+    fontSize: 10,
+    color: '#ef4444',
+    fontWeight: 'bold',
+    marginTop: 4,
+    marginLeft: 4,
+  },
+  pincodeSuccess: {
+    fontSize: 10,
+    color: '#10b981',
+    fontWeight: 'bold',
+    marginTop: 4,
+    marginLeft: 4,
   },
 });

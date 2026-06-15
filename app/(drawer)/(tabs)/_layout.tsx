@@ -1,6 +1,7 @@
 import { Tabs, router } from "expo-router";
 import React from "react";
 import { Platform } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { HapticTab } from "@/components/haptic-tab";
 import { IconSymbol } from "@/components/ui/icon-symbol";
@@ -9,6 +10,9 @@ import { useAuthStore } from "@/store/authStore";
 
 export default function TabLayout() {
   const cartItemCount = useCartStore((state) => state.items.length);
+  const insets = useSafeAreaInsets();
+
+  const isIos = Platform.OS === 'ios';
 
   return (
     <Tabs
@@ -21,8 +25,8 @@ export default function TabLayout() {
           backgroundColor: '#fff',
           borderTopWidth: 1,
           borderTopColor: '#f3f4f6',
-          height: Platform.OS === 'ios' ? 85 : 70,
-          paddingBottom: Platform.OS === 'ios' ? 25 : 12,
+          height: isIos ? (insets.bottom > 0 ? 85 : 65) : (insets.bottom > 0 ? 60 + insets.bottom : 70),
+          paddingBottom: isIos ? (insets.bottom > 0 ? insets.bottom : 0) : (insets.bottom > 0 ? insets.bottom : 12),
         },
       }}
     >
