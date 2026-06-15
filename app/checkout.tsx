@@ -313,13 +313,8 @@ export default function CheckoutScreen() {
         if (errorData?.code === 2 || (typeof error === 'string' && error.includes('"code":2'))) {
           isCancelled = true;
           errorMessage = 'The payment process was cancelled. You can try again whenever you are ready.';
-        } else if (errorData?.error?.description) {
-          errorMessage = errorData.error.description;
-        } else if (errorData?.description) {
-          errorMessage = errorData.description;
-        } else if (typeof error === 'string' && error.length < 100 && !error.includes('{')) {
-          // If it's a short non-json string, use it
-          errorMessage = error;
+        } else {
+          errorMessage = 'Please try again later or use another payment method.';
         }
 
         if (isCancelled) {

@@ -283,7 +283,7 @@ const styles = StyleSheet.create({
   commentSection: {
     gap: 8,
   },
-  input: {
+  textArea: {
     backgroundColor: '#f9fafb',
     borderRadius: 16,
     borderWidth: 1,

@@ -9,23 +9,13 @@ import { useWishlistStore } from '@/store/wishlistStore';
 import { useAuthStore } from '@/store/authStore';
 import { useCartSync } from '@/hooks/useCartSync';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Notifications from 'expo-notifications';
+import messaging from '@react-native-firebase/messaging';
 import * as SecureStore from '@/utils/storage';
 import { registerForPushNotificationsAsync } from '@/utils/notifications';
 import axios from 'axios';
 import { BASE_URL } from '@/constants/config';
 
-// Configure how notifications should display when the app is in the foreground
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-    shouldSetBadge: false,
-  }),
-});
+// Configure how notifications should display (FCM handles this natively)
 
 const GlobalToast = () => {
   const toast = useCartStore((state) => state.toast);
@@ -64,24 +54,37 @@ export default function RootLayout() {
   const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   
   const [isReady, setIsReady] = useState(false);
-  const lastNotificationResponse = Notifications.useLastNotificationResponse();
 
   useEffect(() => {
-    if (
-      lastNotificationResponse &&
-      lastNotificationResponse.notification.request.content.data?.url &&
-      lastNotificationResponse.actionIdentifier === Notifications.DEFAULT_ACTION_IDENTIFIER
-    ) {
-      const url = lastNotificationResponse.notification.request.content.data.url;
-      console.log('Notification response received, navigating to:', url);
-      // Ensure we only navigate once the app is ready and hydrated
-      if (typeof url === 'string' && isReady && cartHydrated && authInitialized) {
-        setTimeout(() => {
-          router.push(url as Href);
-        }, 500);
+    // Handle foreground messages
+    const unsubscribe = messaging().onMessage(async remoteMessage => {
+      console.log('[FCM] Foreground message received:', JSON.stringify(remoteMessage));
+    });
+
+    // Handle notification clicks when app is in background
+    messaging().onNotificationOpenedApp(remoteMessage => {
+      console.log('[FCM] Notification opened from background:', remoteMessage.data);
+      const data = remoteMessage.data;
+      if (data && data.url && typeof data.url === 'string') {
+        router.push(data.url as Href);
       }
-    }
-  }, [lastNotificationResponse, isReady, cartHydrated, authInitialized]);
+    });
+
+    // Handle notification clicks when app is in quit state
+    messaging()
+      .getInitialNotification()
+      .then(remoteMessage => {
+        const data = remoteMessage?.data;
+        if (remoteMessage && data && data.url && typeof data.url === 'string') {
+          console.log('[FCM] Notification opened from quit state:', data);
+          setTimeout(() => {
+            router.push(data.url as Href);
+          }, 1000);
+        }
+      });
+
+    return unsubscribe;
+  }, [isReady]);
 
   useCartSync();
 

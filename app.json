@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Pahadi Collections",
-    "slug": "pahadi-collections",
+    "slug": "pahadi-app",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/pahadiapp-icon.png",
@@ -47,6 +47,7 @@
     },
     "newArchEnabled": false,
     "plugins": [
+      "@react-native-firebase/app",
       "./plugins/withRazorpay",
       "./plugins/withAndroidQueries",
       "expo-router",
@@ -83,7 +84,9 @@
             "extraProguardRules": "-keepclassmembers class * { @android.webkit.JavascriptInterface <methods>; }\n-keepattributes JavascriptInterface\n-keepattributes *Annotation*\n-dontwarn com.razorpay.**\n-keep class com.razorpay.** {*;}\n-optimizations !method/inlining/*\n-keepclasseswithmembers class * { public void onPayment*(...); }"
           }
         }
-      ]
+      ],
+      "@react-native-firebase/app",
+      "@react-native-firebase/messaging"
     ],
     "experiments": {
       "typedRoutes": true,

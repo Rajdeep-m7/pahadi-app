@@ -29,7 +29,7 @@ export default function LoginScreen() {
   const [timer, setTimer] = useState(0);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: any;
     if (timer > 0) {
       interval = setInterval(() => {
         setTimer((prev) => prev - 1);
