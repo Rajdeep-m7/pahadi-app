@@ -165,6 +165,7 @@ export default function EditProfileScreen() {
                       value={name}
                       onChangeText={setName}
                       placeholder="Enter your name"
+                      placeholderTextColor="#374151"
                     />
                   </View>
                 </View>
@@ -178,6 +179,7 @@ export default function EditProfileScreen() {
                       value={email}
                       onChangeText={setEmail}
                       placeholder="Enter your email"
+                      placeholderTextColor="#374151"
                       keyboardType="email-address"
                       autoCapitalize="none"
                     />
@@ -221,6 +223,7 @@ export default function EditProfileScreen() {
                       value={otp}
                       onChangeText={(val) => setOtp(val.replace(/\D/g, '').slice(0, 6))}
                       placeholder="000000"
+                      placeholderTextColor="#374151"
                       keyboardType="numeric"
                       maxLength={6}
                       autoFocus

@@ -90,7 +90,7 @@ export default function OrdersScreen() {
           placeholder="Search by Order ID or Product Name"
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholderTextColor="#9ca3af"
+          placeholderTextColor="#374151"
         />
         {searchQuery.length > 0 && (
           <TouchableOpacity onPress={() => setSearchQuery('')}>

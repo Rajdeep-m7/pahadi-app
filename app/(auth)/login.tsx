@@ -141,6 +141,7 @@ export default function LoginScreen() {
               <TextInput
                 style={[styles.input, otpSent && styles.disabledInput]}
                 placeholder="Mobile Number"
+                placeholderTextColor="#374151"
                 value={phone}
                 onChangeText={(val) => setPhone(normalizePhone(val))}
                 keyboardType="numeric"
@@ -157,6 +158,7 @@ export default function LoginScreen() {
                 <TextInput
                   style={styles.input}
                   placeholder="Enter OTP"
+                  placeholderTextColor="#374151"
                   value={otp}
                   onChangeText={(val) => setOtp(val.replace(/\D/g, '').slice(0, 6))}
                   keyboardType="numeric"

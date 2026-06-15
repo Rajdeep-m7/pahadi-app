@@ -284,6 +284,7 @@ export default function ProductPageContent({
               <TextInput
                 style={styles.pincodeInput}
                 placeholder="Enter Pincode"
+                placeholderTextColor="#374151"
                 keyboardType="numeric"
                 maxLength={6}
                 value={pincode}

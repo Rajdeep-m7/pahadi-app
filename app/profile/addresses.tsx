@@ -350,32 +350,32 @@ export default function AddressesScreen() {
             <ScrollView style={styles.modalForm} showsVerticalScrollIndicator={false}>
               <View style={styles.inputGroup}>
                 <Text style={styles.modalLabel}>Full Name</Text>
-                <TextInput style={styles.modalInput} value={fullName} onChangeText={setFullName} placeholder="John Doe" />
+                <TextInput style={styles.modalInput} value={fullName} onChangeText={setFullName} placeholder="John Doe" placeholderTextColor="#374151" />
               </View>
 
               <View style={styles.inputGroup}>
                 <Text style={styles.modalLabel}>Phone Number</Text>
-                <TextInput style={styles.modalInput} value={phone} onChangeText={setPhone} placeholder="10-digit mobile" keyboardType="numeric" maxLength={10} />
+                <TextInput style={styles.modalInput} value={phone} onChangeText={setPhone} placeholder="10-digit mobile" placeholderTextColor="#374151" keyboardType="numeric" maxLength={10} />
               </View>
 
               <View style={styles.inputGroup}>
                 <Text style={styles.modalLabel}>Address Line 1</Text>
-                <TextInput style={styles.modalInput} value={addressLine1} onChangeText={setAddressLine1} placeholder="House no, Street..." />
+                <TextInput style={styles.modalInput} value={addressLine1} onChangeText={setAddressLine1} placeholder="House no, Street..." placeholderTextColor="#374151" />
               </View>
 
               <View style={styles.inputGroup}>
                 <Text style={styles.modalLabel}>Address Line 2</Text>
-                <TextInput style={styles.modalInput} value={addressLine2} onChangeText={setAddressLine2} placeholder="Landmark, Area..." />
+                <TextInput style={styles.modalInput} value={addressLine2} onChangeText={setAddressLine2} placeholder="Landmark, Area..." placeholderTextColor="#374151" />
               </View>
 
               <View style={styles.row}>
                 <View style={[styles.inputGroup, { flex: 1 }]}>
                   <Text style={styles.modalLabel}>City</Text>
-                  <TextInput style={styles.modalInput} value={city} onChangeText={setCity} placeholder="Mumbai" />
+                  <TextInput style={styles.modalInput} value={city} onChangeText={setCity} placeholder="Mumbai" placeholderTextColor="#374151" />
                 </View>
                 <View style={[styles.inputGroup, { flex: 1 }]}>
                   <Text style={styles.modalLabel}>Pincode</Text>
-                  <TextInput style={styles.modalInput} value={postalCode} onChangeText={setPinCode} placeholder="400001" keyboardType="numeric" maxLength={6} />
+                  <TextInput style={styles.modalInput} value={postalCode} onChangeText={setPinCode} placeholder="400001" placeholderTextColor="#374151" keyboardType="numeric" maxLength={6} />
                   {pincodeLoading && <Text style={styles.pincodeLoading}>Checking...</Text>}
                   {pincodeError ? <Text style={styles.pincodeError}>{pincodeError}</Text> : null}
                   {pincodeSuccess ? <Text style={styles.pincodeSuccess}>{pincodeSuccess}</Text> : null}
@@ -384,7 +384,7 @@ export default function AddressesScreen() {
 
               <View style={styles.inputGroup}>
                 <Text style={styles.modalLabel}>State</Text>
-                <TextInput style={styles.modalInput} value={state} onChangeText={setState} placeholder="Maharashtra" />
+                <TextInput style={styles.modalInput} value={state} onChangeText={setState} placeholder="Maharashtra" placeholderTextColor="#374151" />
               </View>
 
               <TouchableOpacity 

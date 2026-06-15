@@ -524,6 +524,7 @@ export default function OrderDetailsScreen() {
             <TextInput
               style={styles.modalInput}
               placeholder="Reason for cancellation (required)"
+              placeholderTextColor="#374151"
               value={cancelReason}
               onChangeText={setCancelReason}
               multiline
@@ -565,6 +566,7 @@ export default function OrderDetailsScreen() {
             <TextInput
               style={styles.modalInput}
               placeholder="Reason for cancellation (required)"
+              placeholderTextColor="#374151"
               value={cancelReason}
               onChangeText={setCancelReason}
               multiline
@@ -635,6 +637,7 @@ export default function OrderDetailsScreen() {
               <TextInput
                 style={styles.modalInput}
                 placeholder="e.g. Damaged product, Wrong item, etc."
+                placeholderTextColor="#374151"
                 value={returnReason}
                 onChangeText={setReturnReason}
               />
@@ -643,6 +646,7 @@ export default function OrderDetailsScreen() {
               <TextInput
                 style={[styles.modalInput, { height: 80 }]}
                 placeholder="Tell us more about the issue..."
+                placeholderTextColor="#374151"
                 value={returnComment}
                 onChangeText={setReturnComment}
                 multiline

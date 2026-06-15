@@ -309,6 +309,7 @@ export default function CategoryPage() {
                 <TextInput
                   style={styles.rangeInput}
                   placeholder="₹0"
+                  placeholderTextColor="#374151"
                   value={minPrice}
                   onChangeText={setMinPrice}
                   keyboardType="numeric"
@@ -320,6 +321,7 @@ export default function CategoryPage() {
                 <TextInput
                   style={styles.rangeInput}
                   placeholder="₹100,000"
+                  placeholderTextColor="#374151"
                   value={maxPrice}
                   onChangeText={setMaxPrice}
                   keyboardType="numeric"

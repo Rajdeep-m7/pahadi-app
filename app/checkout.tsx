@@ -425,6 +425,7 @@ export default function CheckoutScreen() {
             <TextInput
               style={styles.couponInput}
               placeholder="Enter coupon code"
+              placeholderTextColor="#374151"
               value={couponCode}
               onChangeText={setCouponCode}
               autoCapitalize="characters"

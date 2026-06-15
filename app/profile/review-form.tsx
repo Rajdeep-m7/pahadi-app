@@ -184,10 +184,11 @@ export default function ReviewFormScreen() {
           <View style={styles.commentSection}>
             <Text style={styles.label}>Review Comment</Text>
             <TextInput
-              style={styles.input}
+              style={styles.textArea}
               value={comment}
               onChangeText={setComment}
               placeholder="Tell us what you think about the product..."
+              placeholderTextColor="#374151"
               multiline
               numberOfLines={6}
               textAlignVertical="top"

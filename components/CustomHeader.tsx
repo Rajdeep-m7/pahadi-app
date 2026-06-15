@@ -53,7 +53,7 @@ export function CustomHeader() {
               onChangeText={setSearchQuery}
               onSubmitEditing={handleSearchSubmit}
               autoFocus
-              placeholderTextColor="#9ca3af"
+              placeholderTextColor="#374151"
             />
             {searchQuery.length > 0 && (
               <TouchableOpacity onPress={() => setSearchQuery('')}>
