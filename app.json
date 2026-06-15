@@ -8,8 +8,7 @@
     "scheme": "pahadicollections",
     "userInterfaceStyle": "light",
     "notification": {
-      "icon": "./assets/images/notificationIcon.png",
-      "color": "#012601"
+      "icon": "./assets/images/notificationIcon.png"
     },
     "ios": {
       "supportsTablet": true,

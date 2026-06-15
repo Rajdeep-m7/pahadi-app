@@ -8,6 +8,27 @@ const withAndroidQueries = (config) => {
   return withAndroidManifest(config, (config) => {
     const manifest = config.modResults.manifest;
 
+    // 1. Enable the "tools" namespace (required for overriding conflicts)
+    if (!manifest.$['xmlns:tools']) {
+      manifest.$['xmlns:tools'] = 'http://schemas.android.com/tools';
+    }
+
+    const application = manifest.application[0];
+    
+    // 2. Fix the "Manifest Merger" crash by forcing Android to use 
+    // the Firebase default white color instead of Expo's custom color.
+    if (application['meta-data']) {
+      const notificationColorMetadata = application['meta-data'].find(
+        (m) => m.$['android:name'] === 'com.google.firebase.messaging.default_notification_color'
+      );
+
+      if (notificationColorMetadata) {
+        // Force use of default white and add the replace attribute to solve the merger conflict
+        notificationColorMetadata.$['android:resource'] = '@color/white';
+        notificationColorMetadata.$['tools:replace'] = 'android:resource';
+      }
+    }
+
     // Ensure <queries> block exists
     if (!manifest.queries) {
       manifest.queries = [{}];
