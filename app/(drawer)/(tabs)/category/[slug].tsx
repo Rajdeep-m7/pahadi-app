@@ -21,6 +21,7 @@ interface Product {
   isActive: boolean;
   stocks?: number;
   variantId?: string;
+  effectiveTax?: any;
 }
 
 interface Category {
@@ -49,25 +50,28 @@ export default function CategoryPage() {
   const addToCart = useCartStore((state) => state.addToCart);
 
   // Resolve stocks utility (matches Home screen logic)
+  // Optimized to use pre-populated backend data if available
   const resolveStocks = async (products: Product[]) => {
-    return await Promise.all(
-      products.map(async (prod) => {
-        let stockValue = 0;
-        let variantId = "";
-        if (prod.default_slug) {
-          try {
-            const res = await axios.get(`${BASE_URL}/variants/slug/${prod.default_slug}`);
-            if (res.data?.data?.currentVariant) {
-              stockValue = res.data.data.currentVariant.stocks;
-              variantId = res.data.data.currentVariant._id;
-            }
-          } catch (e) {
-            console.log(`Stock resolution failed for ${prod.default_slug}`);
-          }
-        }
-        return { ...prod, stocks: stockValue, variantId };
-      })
-    );
+    return products.map((prod: any) => {
+      let stockValue = 0;
+      let variantId = "";
+      let effectiveTax = null;
+
+      // If backend pre-populated the variant data (New Optimization)
+      if (prod.defaultVariantId && typeof prod.defaultVariantId === 'object') {
+        stockValue = prod.defaultVariantId.stocks || 0;
+        variantId = prod.defaultVariantId._id || "";
+        effectiveTax = prod.effectiveTax || prod.defaultVariantId.effectiveTax || null;
+      } 
+      // Fallback
+      else if (prod.stocks !== undefined) {
+        stockValue = prod.stocks;
+        variantId = prod.variantId || "";
+        effectiveTax = prod.effectiveTax || null;
+      }
+
+      return { ...prod, stocks: stockValue, variantId, effectiveTax };
+    });
   };
 
   useEffect(() => {
@@ -89,7 +93,7 @@ export default function CategoryPage() {
           : `${BASE_URL}/products/category/${currentSlug}`;
 
         const { data } = await axios.get(endpoint, {
-          params: { limit: 50, isPublished: true, isActive: true }
+          params: { limit: 500, isPublished: true, isActive: true } // Increased to 500 for local filtering and sorting
         });
         
         if (data && data.data) {
@@ -108,8 +112,12 @@ export default function CategoryPage() {
           const productsWithStock = await resolveStocks(rawProducts);
           setProducts(productsWithStock);
         }
-      } catch (error) {
-        console.error("Error fetching category data:", error);
+      } catch (error: any) {
+        console.error("Error fetching category data:", error.message);
+        if (error.response) {
+          console.error("Axios Response Data:", error.response.data);
+          console.error("Axios Response Status:", error.response.status);
+        }
       } finally {
         setLoading(false);
       }
@@ -161,6 +169,7 @@ export default function CategoryPage() {
       discount: product.displayDiscount,
       categoryName: product.categoryId?.name,
       stocks: product.stocks,
+      effectiveTax: (product as any).effectiveTax,
     });
   };
 

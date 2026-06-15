@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -11,8 +11,10 @@ import {
   Modal,
   TextInput,
   ScrollView,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
-import { router, Stack } from 'expo-router';
+import { router, Stack, useFocusEffect } from 'expo-router';
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { BASE_URL } from '@/constants/config';
@@ -35,6 +37,7 @@ export default function AddressesScreen() {
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
+  const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
   
   // Form State
   const [label, setLabel] = useState('Home');
@@ -46,10 +49,6 @@ export default function AddressesScreen() {
   const [state, setState] = useState('');
   const [postalCode, setPinCode] = useState('');
   const [saving, setSaving] = useState(false);
-
-  useEffect(() => {
-    fetchAddresses();
-  }, []);
 
   const fetchAddresses = async () => {
     const token = await SecureStore.getItemAsync('userToken');
@@ -67,32 +66,91 @@ export default function AddressesScreen() {
     }
   };
 
-  const handleAddAddress = async () => {
+  useFocusEffect(
+    useCallback(() => {
+      fetchAddresses();
+    }, [])
+  );
+
+  const resetForm = () => {
+    setLabel('Home');
+    setFullName('');
+    setPhone('');
+    setAddressLine1('');
+    setAddressLine2('');
+    setCity('');
+    setState('');
+    setPinCode('');
+    setEditingAddressId(null);
+  };
+
+  const handleOpenAdd = () => {
+    resetForm();
+    setModalVisible(true);
+  };
+
+  const handleOpenEdit = (address: Address) => {
+    setEditingAddressId(address._id);
+    setLabel(address.label);
+    setFullName(address.fullName);
+    setPhone(address.phone);
+    setAddressLine1(address.addressLine1);
+    setAddressLine2(address.addressLine2 || '');
+    setCity(address.city);
+    setState(address.state);
+    setPinCode(address.postalCode);
+    setModalVisible(true);
+  };
+
+  const handleSaveAddress = async () => {
     if (!fullName || !phone || !addressLine1 || !city || !state || !postalCode) {
       Alert.alert('Error', 'Please fill all required fields.');
+      return;
+    }
+
+    if (phone.length !== 10) {
+      Alert.alert('Error', 'Please enter a valid 10-digit phone number.');
+      return;
+    }
+
+    if (postalCode.length !== 6) {
+      Alert.alert('Error', 'Please enter a valid 6-digit pincode.');
       return;
     }
 
     setSaving(true);
     const token = await SecureStore.getItemAsync('userToken');
     try {
-      await axios.post(
-        `${BASE_URL}/addresses`,
-        { label, fullName, phone, addressLine1, addressLine2, city, state, postalCode },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const payload = { 
+        label: label.trim() || 'Home', 
+        fullName, 
+        phone, 
+        addressLine1, 
+        addressLine2, 
+        city, 
+        state, 
+        postalCode 
+      };
+      
+      if (editingAddressId) {
+        await axios.patch(
+          `${BASE_URL}/addresses/${editingAddressId}`,
+          payload,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      } else {
+        await axios.post(
+          `${BASE_URL}/addresses`,
+          payload,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      }
+      
       setModalVisible(false);
       fetchAddresses();
-      // Reset form
-      setFullName('');
-      setPhone('');
-      setAddressLine1('');
-      setAddressLine2('');
-      setCity('');
-      setState('');
-      setPinCode('');
+      resetForm();
     } catch (error: any) {
-      Alert.alert('Error', error.response?.data?.message || 'Failed to add address.');
+      Alert.alert('Error', error.response?.data?.message || 'Failed to save address.');
     } finally {
       setSaving(false);
     }
@@ -151,7 +209,7 @@ export default function AddressesScreen() {
           <View style={[styles.addressCard, item.isDefault && styles.defaultCard]}>
             <View style={styles.cardHeader}>
               <View style={styles.labelBadge}>
-                <Text style={styles.labelText}>{item.label}</Text>
+                <Text style={styles.labelText}>{item.label || 'HOME'}</Text>
               </View>
               {item.isDefault && (
                 <View style={styles.defaultBadge}>
@@ -161,15 +219,27 @@ export default function AddressesScreen() {
             </View>
             
             <Text style={styles.name}>{item.fullName}</Text>
-            <Text style={styles.addressText}>{item.addressLine1}</Text>
-            {item.addressLine2 && <Text style={styles.addressText}>{item.addressLine2}</Text>}
-            <Text style={styles.addressText}>{`${item.city}, ${item.state} - ${item.postalCode}`}</Text>
+            
+            <View style={styles.addressRow}>
+              <IconSymbol name="mappin.and.ellipse" size={14} color="#6b7280" style={{ marginTop: 2 }} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.addressText}>{item.addressLine1}</Text>
+                {item.addressLine2 && <Text style={styles.addressText}>{item.addressLine2}</Text>}
+                <Text style={styles.addressText}>{`${item.city}, ${item.state} - ${item.postalCode}`}</Text>
+              </View>
+            </View>
+            
             <Text style={styles.phoneText}>Phone: {item.phone}</Text>
 
             <View style={styles.cardActions}>
+              <TouchableOpacity style={styles.actionBtn} onPress={() => handleOpenEdit(item)}>
+                <IconSymbol name="pencil" size={16} color="#3b82f6" />
+                <Text style={styles.actionBtnText}>Edit</Text>
+              </TouchableOpacity>
+              
               {!item.isDefault && (
                 <TouchableOpacity style={styles.actionBtn} onPress={() => handleSetDefault(item._id)}>
-                  <Text style={styles.actionBtnText}>Set Default</Text>
+                  <Text style={[styles.actionBtnText, { color: '#6b7280' }]}>Set Default</Text>
                 </TouchableOpacity>
               )}
               <TouchableOpacity style={styles.actionBtn} onPress={() => handleDelete(item._id)}>
@@ -187,17 +257,22 @@ export default function AddressesScreen() {
         }
       />
 
-      <TouchableOpacity style={styles.addButton} onPress={() => setModalVisible(true)}>
+      <TouchableOpacity style={styles.addButton} onPress={handleOpenAdd}>
         <IconSymbol name="plus" size={20} color="#fff" />
         <Text style={styles.addButtonText}>Add New Address</Text>
       </TouchableOpacity>
 
-      {/* Add Address Modal */}
+      {/* Address Modal */}
       <Modal visible={modalVisible} animationType="slide" transparent={true}>
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView 
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+          style={styles.modalOverlay}
+        >
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>New Address</Text>
+              <Text style={styles.modalTitle}>
+                {editingAddressId ? 'Edit Address' : 'New Address'}
+              </Text>
               <TouchableOpacity onPress={() => setModalVisible(false)}>
                 <IconSymbol name="xmark" size={24} color="#111827" />
               </TouchableOpacity>
@@ -225,7 +300,7 @@ export default function AddressesScreen() {
               </View>
 
               <View style={styles.inputGroup}>
-                <Text style={styles.modalLabel}>Address Line 2 (Optional)</Text>
+                <Text style={styles.modalLabel}>Address Line 2</Text>
                 <TextInput style={styles.modalInput} value={addressLine2} onChangeText={setAddressLine2} placeholder="Landmark, Area..." />
               </View>
 
@@ -247,7 +322,7 @@ export default function AddressesScreen() {
 
               <TouchableOpacity 
                 style={[styles.submitBtn, saving && styles.disabledButton]} 
-                onPress={handleAddAddress}
+                onPress={handleSaveAddress}
                 disabled={saving}
               >
                 {saving ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitBtnText}>Save Address</Text>}
@@ -256,7 +331,7 @@ export default function AddressesScreen() {
               <View style={{ height: 40 }} />
             </ScrollView>
           </View>
-        </View>
+        </KeyboardAvoidingView>
       </Modal>
     </SafeAreaView>
   );
@@ -332,6 +407,11 @@ const styles = StyleSheet.create({
     color: '#111827',
     fontWeight: '600',
     marginTop: 8,
+  },
+  addressRow: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'flex-start',
   },
   cardActions: {
     flexDirection: 'row',

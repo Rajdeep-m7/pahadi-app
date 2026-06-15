@@ -126,11 +126,15 @@ export default function OrderDetailsScreen() {
   };
 
   const handleCancelOrder = async () => {
+    if (!cancelReason.trim()) {
+      Alert.alert('Error', 'Please provide a reason for cancellation');
+      return;
+    }
     setCancelling(true);
     const token = await SecureStore.getItemAsync('userToken');
     try {
       await axios.patch(`${BASE_URL}/orders/me/${id}/cancel`, 
-        { reason: cancelReason || 'Cancelled by user' },
+        { reason: cancelReason },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       Alert.alert('Success', 'Order cancelled successfully');
@@ -145,11 +149,15 @@ export default function OrderDetailsScreen() {
 
   const handleCancelItem = async () => {
     if (!selectedCancelItem) return;
+    if (!cancelReason.trim()) {
+      Alert.alert('Error', 'Please provide a reason for cancellation');
+      return;
+    }
     setCancelling(true);
     const token = await SecureStore.getItemAsync('userToken');
     try {
       await axios.patch(`${BASE_URL}/orders/me/${id}/cancel-item/${selectedCancelItem._id}`, 
-        { reason: cancelReason || 'Cancelled by user from mobile app' },
+        { reason: cancelReason },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       Alert.alert('Success', 'Item cancelled successfully');
@@ -211,7 +219,7 @@ export default function OrderDetailsScreen() {
   };
 
   const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
+    switch ((status || '').toLowerCase()) {
       case 'delivered': return '#10b981';
       case 'processing': return '#3b82f6';
       case 'cancelled': return '#ef4444';
@@ -250,12 +258,12 @@ export default function OrderDetailsScreen() {
         {/* HEADER SECTION */}
         <View style={styles.headerCard}>
           <View style={styles.headerInfo}>
-             <Text style={styles.orderIdHeader}>Order #{order.orderId || order._id.slice(-6).toUpperCase()}</Text>
+             <Text style={styles.orderIdHeader}>Order #{order.orderId}</Text>
              <Text style={styles.dateText}>Placed on {new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</Text>
           </View>
           <View style={[styles.statusBadge, { backgroundColor: `${getStatusColor(order.orderStatus)}15`, borderColor: `${getStatusColor(order.orderStatus)}30` }]}>
             <Text style={[styles.statusText, { color: getStatusColor(order.orderStatus) }]}>
-              {ORDER_STATUS_LABELS[order.orderStatus] || order.orderStatus.toUpperCase()}
+              {ORDER_STATUS_LABELS[order.orderStatus] || (order.orderStatus || '').toUpperCase()}
             </Text>
           </View>
         </View>
@@ -515,7 +523,7 @@ export default function OrderDetailsScreen() {
             <Text style={styles.modalDesc}>Are you sure you want to cancel this order? This action cannot be undone.</Text>
             <TextInput
               style={styles.modalInput}
-              placeholder="Reason for cancellation (optional)"
+              placeholder="Reason for cancellation (required)"
               value={cancelReason}
               onChangeText={setCancelReason}
               multiline
@@ -556,7 +564,7 @@ export default function OrderDetailsScreen() {
             <Text style={styles.modalDesc}>Are you sure you want to cancel this product? This action cannot be undone.</Text>
             <TextInput
               style={styles.modalInput}
-              placeholder="Reason for cancellation (optional)"
+              placeholder="Reason for cancellation (required)"
               value={cancelReason}
               onChangeText={setCancelReason}
               multiline

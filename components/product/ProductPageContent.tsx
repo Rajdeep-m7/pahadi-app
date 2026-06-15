@@ -14,6 +14,7 @@ import {
   FlatList,
 } from "react-native";
 import { router } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useCartStore } from "@/store/cartStore";
 import { useWishlistStore } from "@/store/wishlistStore";
@@ -33,7 +34,8 @@ export default function ProductPageContent({
   productData,
   similarProducts,
 }: ProductPageContentProps) {
-  const { currentVariant, siblingOptions } = productData;
+  const insets = useSafeAreaInsets();
+  const { currentVariant, siblingOptions, effectiveTax } = productData;
   const productDetails = currentVariant.productId;
   const addToCart = useCartStore((state) => state.addToCart);
   const updateQuantity = useCartStore((state) => state.updateQuantity);
@@ -88,6 +90,7 @@ export default function ProductPageContent({
       mrp: currentVariant.mrp,
       categoryName: productDetails.categoryId?.name,
       stocks: currentVariant.stocks,
+      effectiveTax: effectiveTax || currentVariant.effectiveTax,
     });
   };
 
@@ -142,13 +145,13 @@ export default function ProductPageContent({
       } else {
         setPincodeStatus({
           status: "error",
-          message: "Not available for this location",
+          message: "Delivery not available for this pincode",
         });
       }
     } catch (e) {
       setPincodeStatus({
         status: "error",
-        message: "Serviceability check failed",
+        message: "Delivery not available for this pincode",
       });
     }
   };
@@ -500,7 +503,7 @@ export default function ProductPageContent({
       </ScrollView>
 
       {/* Sticky Bottom Actions */}
-      <View style={styles.stickyFooter}>
+      <View style={[styles.stickyFooter, { paddingBottom: Math.max(insets.bottom, 16) }]}>
         {cartItem ? (
           <View style={[styles.footerBtn, styles.quantityContainer]}>
             <TouchableOpacity

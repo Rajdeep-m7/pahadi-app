@@ -11,7 +11,7 @@ import {
   Platform,
   ScrollView,
 } from 'react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import axios from 'axios';
 import { BASE_URL } from '@/constants/config';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -19,6 +19,7 @@ import { useCartStore } from '@/store/cartStore';
 import { useAuthStore } from '@/store/authStore';
 
 export default function LoginScreen() {
+  const { redirectTo } = useLocalSearchParams();
   const [phone, setPhone] = useState('');
   const [otp, setOtp] = useState('');
   const [otpSent, setOtpSent] = useState(false);
@@ -103,7 +104,11 @@ export default function LoginScreen() {
           console.error('Initial cart sync failed:', syncErr);
         }
 
-        router.replace('/(drawer)/(tabs)/profile');
+        if (redirectTo) {
+          router.replace(redirectTo as any);
+        } else {
+          router.replace('/(drawer)/(tabs)/profile');
+        }
       } else {
         throw new Error('Access or refresh token missing from response.');
       }

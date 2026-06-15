@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View,
   Text,
@@ -12,9 +12,10 @@ import {
   Linking,
   Platform,
   AppState,
+  TextInput,
 } from 'react-native';
 import RazorpayCheckout from 'react-native-razorpay';
-import { router, Stack } from 'expo-router';
+import { router, Stack, useFocusEffect } from 'expo-router';
 import axios from 'axios';
 import * as SecureStore from '@/utils/storage';
 import { BASE_URL, RAZORPAY_KEY_ID } from '@/constants/config';
@@ -36,14 +37,43 @@ interface Address {
 }
 
 export default function CheckoutScreen() {
-  const { items, clearCart } = useCartStore();
+  const { items, clearCart, appliedCoupon, setAppliedCoupon, removeCoupon } = useCartStore();
   const { user } = useAuthStore();
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [processing, setProcessing] = useState(false);
   
-  const [paymentMethod, setPaymentMethod] = useState<'razorpay' | 'google_pay' | 'phonepe' | 'paytm'>('razorpay');
+  const [couponCode, setCouponCode] = useState('');
+  const [isApplying, setIsApplying] = useState(false);
+  const [availableCoupons, setAvailableCoupons] = useState<any[]>([]);
+  const [loadingCoupons, setLoadingCoupons] = useState(false);
+  
+  const [paymentMethod, setPaymentMethod] = useState<'razorpay' | 'phonepe' | 'paytm' | 'google_pay'>('razorpay');
+
+  useEffect(() => {
+    fetchAvailableCoupons();
+  }, []);
+
+  const fetchAvailableCoupons = async () => {
+    const token = await SecureStore.getItemAsync('userToken');
+    if (!token) return;
+
+    setLoadingCoupons(true);
+    try {
+      const { data } = await axios.get(`${BASE_URL}/coupons/available`, {
+        params: { maxOrderValue: 9999999 },
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (data && data.data) {
+        setAvailableCoupons(data.data.coupons || []);
+      }
+    } catch (error) {
+      console.error('Error fetching available coupons:', error);
+    } finally {
+      setLoadingCoupons(false);
+    }
+  };
 
   useEffect(() => {
     const subscription = AppState.addEventListener('change', (nextAppState) => {
@@ -58,23 +88,29 @@ export default function CheckoutScreen() {
     };
   }, [processing]);
 
-  useEffect(() => {
-    fetchAddresses();
-  }, []);
-
   const fetchAddresses = async () => {
     const token = await SecureStore.getItemAsync('userToken');
+    
+    // Show loading if we currently have no addresses (to prevent stale UI flicker)
+    if (addresses.length === 0) {
+      setLoading(true);
+    }
+
     try {
       const { data } = await axios.get(`${BASE_URL}/addresses`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (data && data.data) {
         setAddresses(data.data);
-        const defaultAddr = data.data.find((a: Address) => a.isDefault);
-        if (defaultAddr) {
-          setSelectedAddressId(defaultAddr._id);
-        } else if (data.data.length > 0) {
-          setSelectedAddressId(data.data[0]._id);
+        // Only set default if nothing is selected or if current selection is not in new list
+        const stillExists = data.data.find((a: Address) => a._id === selectedAddressId);
+        if (!selectedAddressId || !stillExists) {
+          const defaultAddr = data.data.find((a: Address) => a.isDefault);
+          if (defaultAddr) {
+            setSelectedAddressId(defaultAddr._id);
+          } else if (data.data.length > 0) {
+            setSelectedAddressId(data.data[0]._id);
+          }
         }
       }
     } catch (error) {
@@ -84,10 +120,67 @@ export default function CheckoutScreen() {
     }
   };
 
+  useFocusEffect(
+    useCallback(() => {
+      fetchAddresses();
+    }, [selectedAddressId])
+  );
+
   const subtotal = items.reduce(
     (acc, item) => acc + item.product.price * item.quantity,
     0
   );
+
+  const totalTax = items.reduce((acc, item) => {
+    if (!item.product.effectiveTax || item.product.effectiveTax.length === 0) return acc;
+    const itemPrice = item.product.price || 0;
+    const itemTax = item.product.effectiveTax.reduce((tAcc, slab) => {
+      return tAcc + (itemPrice * (slab.slab / 100));
+    }, 0);
+    return acc + (itemTax * item.quantity);
+  }, 0);
+
+  const isAppliedCouponValid = appliedCoupon ? subtotal >= appliedCoupon.minOrderValue : true;
+  const discountAmount = isAppliedCouponValid ? (appliedCoupon?.calculatedDiscount || 0) : 0;
+  const totalAmount = Math.round(subtotal + totalTax - discountAmount);
+
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) {
+      Alert.alert('Error', 'Please enter a coupon code');
+      return;
+    }
+
+    const token = await SecureStore.getItemAsync('userToken');
+    if (!token) return;
+
+    setIsApplying(true);
+    try {
+      const { data } = await axios.get(`${BASE_URL}/coupons/validate`, {
+        params: { code: couponCode, subtotal },
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (data && data.data && data.data.valid) {
+        const res = data.data;
+        setAppliedCoupon({
+          code: res.coupon.code,
+          type: res.coupon.type,
+          value: res.coupon.value,
+          maxDiscount: res.coupon.maxDiscount,
+          minOrderValue: res.coupon.minOrderValue,
+          calculatedDiscount: res.calculatedDiscount,
+        });
+        setCouponCode('');
+        Alert.alert('Success', 'Coupon applied successfully!');
+      } else {
+        Alert.alert('Error', data.data?.error || data.data?.message || 'Invalid coupon code');
+      }
+    } catch (error: any) {
+      Alert.alert('Error', error.response?.data?.message || 'Failed to apply coupon');
+    } finally {
+      setIsApplying(false);
+    }
+  };
 
   const handlePlaceOrder = async () => {
     if (!selectedAddressId) {
@@ -108,6 +201,7 @@ export default function CheckoutScreen() {
           quantity: item.quantity,
         })),
         isCartCheckout: true,
+        appliedCoupon: appliedCoupon?.code || undefined,
       };
 
       const orderRes = await axios.post(`${BASE_URL}/orders`, orderPayload, {
@@ -125,7 +219,7 @@ export default function CheckoutScreen() {
 
       // 3. Open Native Razorpay Checkout
       const options: any = {
-        description: `Order #${orderId.substring(0, 8)}`,
+        description: `Order #${orderId}`,
         image: 'https://pahadiapp.com/logo.png', // Replace with your logo
         currency: currency,
         key: RAZORPAY_KEY_ID,
@@ -185,6 +279,7 @@ export default function CheckoutScreen() {
           await SecureStore.deleteItemAsync('pending_verification_order_id');
           
           clearCart();
+          removeCoupon();
           
           // Small delay before navigation to ensure modal is fully dismissed
           setTimeout(() => {
@@ -306,6 +401,90 @@ export default function CheckoutScreen() {
           </View>
         </View>
 
+        {/* Coupon Section */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Coupon Code</Text>
+          <View style={styles.couponContainer}>
+            <TextInput
+              style={styles.couponInput}
+              placeholder="Enter coupon code"
+              value={couponCode}
+              onChangeText={setCouponCode}
+              autoCapitalize="characters"
+              editable={!appliedCoupon}
+            />
+            <TouchableOpacity 
+              style={[
+                styles.applyButton,
+                (!couponCode.trim() || isApplying || !!appliedCoupon) && styles.applyButtonDisabled
+              ]}
+              onPress={handleApplyCoupon}
+              disabled={!couponCode.trim() || isApplying || !!appliedCoupon}
+            >
+              {isApplying ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.applyButtonText}>Apply</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+          
+          {appliedCoupon && (
+            <View style={[styles.appliedCouponCard, !isAppliedCouponValid && styles.invalidAppliedCouponCard]}>
+              <View style={styles.appliedCouponLeft}>
+                <IconSymbol name="tag.fill" size={16} color={isAppliedCouponValid ? "#16a34a" : "#ef4444"} />
+                <Text style={[styles.appliedCouponCode, !isAppliedCouponValid && styles.invalidCouponText]}>{appliedCoupon.code}</Text>
+                <Text style={styles.appliedCouponSavings}>
+                  {isAppliedCouponValid 
+                    ? `Saved ${formatPrice(Math.round(appliedCoupon.calculatedDiscount))}`
+                    : `NOT APPLICABLE (Min ${formatPrice(appliedCoupon.minOrderValue)})`
+                  }
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => removeCoupon()}>
+                <IconSymbol name="xmark.circle.fill" size={20} color="#ef4444" />
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Available Coupons List */}
+          {!appliedCoupon && availableCoupons.length > 0 && (
+            <View style={styles.availableCouponsWrapper}>
+              <Text style={styles.availableTitle}>Available Coupons</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.availableScroll}>
+                {availableCoupons.map((coupon) => {
+                  const isApplicable = subtotal >= coupon.minOrderValue;
+                  return (
+                    <TouchableOpacity
+                      key={coupon._id || coupon.code}
+                      style={[
+                        styles.couponTicket,
+                        !isApplicable && styles.disabledCouponTicket
+                      ]}
+                      onPress={() => isApplicable && setCouponCode(coupon.code)}
+                      disabled={!isApplicable}
+                    >
+                      <View style={styles.ticketMain}>
+                        <Text style={styles.ticketCode}>{coupon.code}</Text>
+                        <Text style={styles.ticketValue}>
+                          {coupon.type === 'percentage' ? `${coupon.value}% OFF` : `₹${coupon.value} OFF`}
+                        </Text>
+                      </View>
+                      <View style={styles.ticketFooter}>
+                        {isApplicable ? (
+                          <Text style={styles.tapToApply}>Tap to apply</Text>
+                        ) : (
+                          <Text style={styles.minOrderReq}>NOT APPLICABLE (Min ₹{coupon.minOrderValue})</Text>
+                        )}
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          )}
+        </View>
+
         {/* Payment Method Selection */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Payment Method</Text>
@@ -333,29 +512,6 @@ export default function CheckoutScreen() {
                 <Image source={{ uri: 'https://img.icons8.com/color/48/visa.png' }} style={styles.miniBrandIcon} />
                 <Image source={{ uri: 'https://img.icons8.com/color/48/mastercard.png' }} style={styles.miniBrandIcon} />
               </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={[
-                styles.methodCard,
-                paymentMethod === 'google_pay' && styles.selectedMethodCard
-              ]}
-              onPress={() => setPaymentMethod('google_pay')}
-            >
-              <View style={styles.methodLeft}>
-                <View style={[
-                  styles.radioOuter,
-                  paymentMethod === 'google_pay' && styles.radioOuterActive
-                ]}>
-                  {paymentMethod === 'google_pay' && <View style={styles.radioInner} />}
-                </View>
-                <Image 
-                  source={{ uri: 'https://img.icons8.com/color/48/google-pay.png' }} 
-                  style={styles.methodBrandIcon} 
-                />
-                <Text style={styles.methodText}>Google Pay</Text>
-              </View>
-              <Text style={styles.fastTag}>FAST</Text>
             </TouchableOpacity>
 
             <TouchableOpacity 
@@ -414,13 +570,25 @@ export default function CheckoutScreen() {
               <Text style={styles.summaryValue}>{formatPrice(subtotal)}</Text>
             </View>
             <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Estimated Tax</Text>
+              <Text style={styles.summaryValue}>{formatPrice(Math.round(totalTax))}</Text>
+            </View>
+            {discountAmount > 0 && (
+              <View style={styles.summaryRow}>
+                <Text style={styles.summaryLabel}>Discount</Text>
+                <Text style={[styles.summaryValue, { color: '#16a34a' }]}>
+                  -{formatPrice(Math.round(discountAmount))}
+                </Text>
+              </View>
+            )}
+            <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Shipping</Text>
               <Text style={[styles.summaryValue, { color: '#16a34a' }]}>FREE</Text>
             </View>
             <View style={styles.divider} />
             <View style={styles.totalRow}>
               <Text style={styles.totalLabel}>Grand Total</Text>
-              <Text style={styles.totalValue}>{formatPrice(subtotal)}</Text>
+              <Text style={styles.totalValue}>{formatPrice(totalAmount)}</Text>
             </View>
           </View>
         </View>
@@ -430,15 +598,20 @@ export default function CheckoutScreen() {
 
       <View style={styles.footer}>
         <TouchableOpacity 
-          style={[styles.payButton, processing && styles.disabledButton]} 
+          style={[
+            styles.payButton, 
+            (processing || !selectedAddressId) && styles.disabledButton
+          ]} 
           onPress={handlePlaceOrder}
-          disabled={processing}
+          disabled={processing || !selectedAddressId}
         >
           {processing ? (
             <ActivityIndicator color="#fff" />
           ) : (
             <>
-              <Text style={styles.payButtonText}>Pay {formatPrice(subtotal)}</Text>
+              <Text style={styles.payButtonText}>
+                {!selectedAddressId ? 'Select Address to Pay' : `Pay ${formatPrice(totalAmount)}`}
+              </Text>
               <IconSymbol name="lock.fill" size={14} color="#fff" />
             </>
           )}
@@ -638,6 +811,72 @@ const styles = StyleSheet.create({
     fontWeight: '900',
     color: '#b98b5f',
   },
+  couponContainer: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 8,
+  },
+  couponInput: {
+    flex: 1,
+    backgroundColor: '#fff',
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    height: 48,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#111827',
+  },
+  applyButton: {
+    backgroundColor: '#111827',
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: 48,
+  },
+  applyButtonDisabled: {
+    opacity: 0.5,
+  },
+  applyButtonText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
+  appliedCouponCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#f0fdf4',
+    borderWidth: 1,
+    borderColor: '#dcfce7',
+    borderRadius: 12,
+    padding: 12,
+    marginTop: 12,
+  },
+  appliedCouponLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  appliedCouponCode: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#16a34a',
+  },
+  appliedCouponSavings: {
+    fontSize: 12,
+    color: '#15803d',
+    fontWeight: '500',
+  },
+  invalidAppliedCouponCard: {
+    backgroundColor: '#fef2f2',
+    borderColor: '#fecaca',
+  },
+  invalidCouponText: {
+    color: '#ef4444',
+  },
   footer: {
     position: 'absolute',
     bottom: 0,
@@ -739,5 +978,63 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
     borderRadius: 4,
     overflow: 'hidden',
+  },
+  availableCouponsWrapper: {
+    marginTop: 20,
+  },
+  availableTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#374151',
+    marginBottom: 10,
+  },
+  availableScroll: {
+    gap: 12,
+    paddingRight: 16,
+  },
+  couponTicket: {
+    width: 150,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#e5e7eb',
+    overflow: 'hidden',
+  },
+  disabledCouponTicket: {
+    opacity: 0.5,
+    backgroundColor: '#f9fafb',
+  },
+  ticketMain: {
+    padding: 12,
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f3f4f6',
+    borderStyle: 'dashed',
+  },
+  ticketCode: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#b98b5f',
+  },
+  ticketValue: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#111827',
+    marginTop: 4,
+  },
+  ticketFooter: {
+    padding: 8,
+    backgroundColor: '#f9fafb',
+    alignItems: 'center',
+  },
+  tapToApply: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#16a34a',
+  },
+  minOrderReq: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: '#ef4444',
   },
 });

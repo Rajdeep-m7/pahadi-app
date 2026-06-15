@@ -53,7 +53,7 @@ export default function OrdersScreen() {
   };
 
   const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
+    switch ((status || '').toLowerCase()) {
       case 'delivered': return '#10b981';
       case 'processing': return '#3b82f6';
       case 'cancelled': return '#ef4444';
@@ -62,10 +62,10 @@ export default function OrdersScreen() {
     }
   };
 
-  const filteredOrders = orders.filter((order) => {
+  const filteredOrders = orders.filter(order => {
     const q = searchQuery.toLowerCase();
-    const orderIdMatch = (order.orderId || `#${order._id.slice(-6).toUpperCase()}`).toLowerCase().includes(q);
-    const itemMatch = order.items.some((item) => 
+    const orderIdMatch = (order.orderId || '').toLowerCase().includes(q);
+    const itemMatch = (order.items || []).some(item => 
       (item.snapshot?.title || item.title || '').toLowerCase().includes(q)
     );
     return orderIdMatch || itemMatch;
@@ -154,7 +154,7 @@ export default function OrdersScreen() {
               </View>
 
               <View style={styles.cardFooter}>
-                <Text style={styles.orderIdText}>ID: {item.orderId || `#${item._id.slice(-6).toUpperCase()}`}</Text>
+                <Text style={styles.orderIdText}>ID: {item.orderId}</Text>
                 <View style={styles.viewDetailsContainer}>
                   <Text style={styles.viewDetails}>View Details</Text>
                   <IconSymbol name="chevron.right" size={16} color="#3b82f6" />

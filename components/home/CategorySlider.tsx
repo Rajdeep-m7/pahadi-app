@@ -93,7 +93,7 @@ export default function CategorySlider() {
           <TouchableOpacity style={styles.slide} onPress={() => handleCategoryPress(item)}>
             <View style={styles.imageContainer}>
               <Image 
-                source={{ uri: item.imageUrl || item.iconUrl || 'https://via.placeholder.com/150' }} 
+                source={{ uri: item.imageUrl || item.iconUrl }} 
                 style={styles.image} 
                 transition={null}
               />

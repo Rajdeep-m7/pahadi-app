@@ -38,6 +38,7 @@ interface Product {
   isActive: boolean;
   stocks?: number; // Resolved from variant
   variantId?: string; // Added to store the actual variant ID
+  effectiveTax?: any;
 }
 
 interface ActiveSection {
@@ -67,25 +68,28 @@ export default function HomeScreen() {
   const addToCart = useCartStore((state) => state.addToCart);
 
   // Utility to fetch stocks and variant details for a list of products
+  // Optimized to use pre-populated backend data if available
   const resolveStocks = async (products: Product[]) => {
-    return await Promise.all(
-      products.map(async (prod) => {
-        let stockValue = 0;
-        let variantId = "";
-        if (prod.default_slug) {
-          try {
-            const res = await axios.get(`${BASE_URL}/variants/slug/${prod.default_slug}`);
-            if (res.data?.data?.currentVariant) {
-              stockValue = res.data.data.currentVariant.stocks;
-              variantId = res.data.data.currentVariant._id;
-            }
-          } catch (e) {
-            console.log(`Stock resolution failed for ${prod.default_slug}`);
-          }
-        }
-        return { ...prod, stocks: stockValue, variantId };
-      })
-    );
+    return products.map((prod: any) => {
+      let stockValue = 0;
+      let variantId = "";
+      let effectiveTax = null;
+
+      // If backend pre-populated the variant data (New Optimization)
+      if (prod.defaultVariantId && typeof prod.defaultVariantId === 'object') {
+        stockValue = prod.defaultVariantId.stocks || 0;
+        variantId = prod.defaultVariantId._id || "";
+        effectiveTax = prod.effectiveTax || prod.defaultVariantId.effectiveTax || null;
+      } 
+      // Fallback for older backend versions or if not populated
+      else if (prod.stocks !== undefined) {
+        stockValue = prod.stocks;
+        variantId = prod.variantId || "";
+        effectiveTax = prod.effectiveTax || null;
+      }
+
+      return { ...prod, stocks: stockValue, variantId, effectiveTax };
+    });
   };
 
   useEffect(() => {
@@ -160,6 +164,7 @@ export default function HomeScreen() {
       discount: product.displayDiscount,
       categoryName: product.categoryId?.name,
       stocks: product.stocks,
+      effectiveTax: product.effectiveTax,
     });
   };
 

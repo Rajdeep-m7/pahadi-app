@@ -15,6 +15,20 @@ function extractVariantId(vid: any): string {
   return String(vid);
 }
 
+export interface TaxSlab {
+  name: string;
+  slab: number;
+}
+
+export interface AppliedCoupon {
+  code: string;
+  type: string;
+  value: number;
+  maxDiscount: number;
+  minOrderValue: number;
+  calculatedDiscount: number;
+}
+
 export interface CartItem {
   variantId: string;
   quantity: number;
@@ -27,11 +41,13 @@ export interface CartItem {
     discount?: number;
     categoryName?: string;
     stocks?: number;
+    effectiveTax?: TaxSlab[] | null;
   };
 }
 
 interface CartState {
   items: CartItem[];
+  appliedCoupon: AppliedCoupon | null;
   loading: boolean;
   isDirty: boolean; // true if local changes are not yet synced to backend
   lastSyncedAt: number | null;
@@ -52,6 +68,10 @@ interface CartState {
   updateQuantity: (variantId: string, quantity: number) => void;
   clearCart: () => Promise<void>;
   
+  // Coupon Actions
+  setAppliedCoupon: (coupon: AppliedCoupon | null) => void;
+  removeCoupon: () => void;
+  
   // Backend Sync
   syncToBackend: () => Promise<void>;
   fetchCart: () => Promise<void>;
@@ -63,6 +83,7 @@ export const useCartStore = create<CartState>()(
   persist(
     (set, get) => ({
       items: [],
+      appliedCoupon: null,
       loading: false,
       isDirty: false,
       lastSyncedAt: null,
@@ -90,18 +111,26 @@ export const useCartStore = create<CartState>()(
         const { items } = get();
         const existingItem = items.find((item) => extractVariantId(item.variantId) === vidStr);
 
+        const currentQty = existingItem ? existingItem.quantity : 0;
+        const availableStocks = product.stocks || 999;
+
+        if (currentQty >= availableStocks) {
+          get().showToast(`Maximum stock reached for ${product.title}`);
+          return;
+        }
+
         let newItems;
         if (existingItem) {
           newItems = items.map((item) =>
             extractVariantId(item.variantId) === vidStr
-              ? { ...item, quantity: item.quantity + 1 }
+              ? { ...item, quantity: item.quantity + 1, product: { ...item.product, ...product } }
               : item
           );
         } else {
           newItems = [...items, { variantId: vidStr, quantity: 1, product }];
         }
         
-        set({ items: newItems, isDirty: true });
+        set({ items: newItems, isDirty: true, appliedCoupon: null });
         get().showToast(`Added ${product.title} to cart`);
       },
 
@@ -111,6 +140,7 @@ export const useCartStore = create<CartState>()(
         set({
           items: get().items.filter((item) => extractVariantId(item.variantId) !== vidStr),
           isDirty: true,
+          appliedCoupon: null,
         });
         if (itemToRemove) {
           get().showToast(`Removed from cart`);
@@ -123,16 +153,24 @@ export const useCartStore = create<CartState>()(
           get().removeFromCart(vidStr);
           return;
         }
+
+        const item = get().items.find((i) => extractVariantId(i.variantId) === vidStr);
+        if (item && quantity > (item.product.stocks || 999)) {
+          get().showToast(`Only ${item.product.stocks} units available`);
+          return;
+        }
+
         set({
           items: get().items.map((item) =>
             extractVariantId(item.variantId) === vidStr ? { ...item, quantity } : item
           ),
           isDirty: true,
+          appliedCoupon: null,
         });
       },
 
       clearCart: async () => {
-        set({ items: [], isDirty: false });
+        set({ items: [], isDirty: false, appliedCoupon: null });
         const token = await SecureStore.getItemAsync('userToken');
         if (!token) return;
 
@@ -144,6 +182,9 @@ export const useCartStore = create<CartState>()(
           console.error('Failed to clear cart on backend:', error);
         }
       },
+
+      setAppliedCoupon: (coupon) => set({ appliedCoupon: coupon }),
+      removeCoupon: () => set({ appliedCoupon: null }),
 
       syncToBackend: async () => {
         const token = await SecureStore.getItemAsync('userToken');
@@ -189,6 +230,7 @@ export const useCartStore = create<CartState>()(
                 discount: item.variantId?.discount,
                 categoryName: item.variantId?.productId?.categoryId?.name || '',
                 stocks: item.variantId?.stocks,
+                effectiveTax: item.effectiveTax || item.variantId?.effectiveTax || null,
               },
             }));
             set({ items: backendItems, isDirty: false });
@@ -215,6 +257,8 @@ export const useCartStore = create<CartState>()(
             mergedMap.set(vidStr, {
               ...existing,
               quantity: Math.max(existing.quantity, item.quantity),
+              // Prefer local product data if it's richer
+              product: { ...existing.product, ...item.product }
             });
           } else {
             mergedMap.set(vidStr, item);
@@ -247,6 +291,7 @@ export const useCartStore = create<CartState>()(
                 discount: item.variantId?.discount,
                 categoryName: item.variantId?.productId?.categoryId?.name || '',
                 stocks: item.variantId?.stocks,
+                effectiveTax: item.effectiveTax || item.variantId?.effectiveTax || null,
               },
             }));
             get().mergeCart(backendItems);
@@ -259,12 +304,13 @@ export const useCartStore = create<CartState>()(
       },
     }),
     {
-      name: 'pahadi-cart-storage-v3',
+      name: 'pahadi-cart-storage',
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({ 
         items: state.items, 
         isDirty: state.isDirty,
-        lastSyncedAt: state.lastSyncedAt 
+        lastSyncedAt: state.lastSyncedAt,
+        appliedCoupon: state.appliedCoupon
       }),
       onRehydrateStorage: () => (state) => {
         state?.setHasHydrated(true);

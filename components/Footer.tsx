@@ -1,14 +1,32 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, Image, TouchableOpacity, Linking } from 'react-native';
 import { router } from 'expo-router';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { BASE_URL } from '@/constants/config';
 import visa from "@/assets/images/image copy 8.png"
 import rupay from "@/assets/images/image copy 9.png"
 import mastercard from "@/assets/images/image copy 10.png"
 import upi from "@/assets/images/image copy 11.png"
 
+interface Category {
+  _id: string;
+  name: string;
+  slug: string;
+}
+
 export default function Footer() {
   const currentYear = new Date().getFullYear();
+  const [categories, setCategories] = useState<Category[]>([]);
+
+  useEffect(() => {
+    fetch(`${BASE_URL}/categories?parentCategoryId=null`)
+      .then((res) => res.json())
+      .then((response) => {
+        const cats = response.data || [];
+        setCategories(cats.slice(0, 5));
+      })
+      .catch((err) => console.error("Error fetching categories for footer:", err));
+  }, []);
 
   const handleLinkPress = (url: string) => {
     Linking.openURL(url).catch((err) => console.error("Couldn't load page", err));
@@ -53,10 +71,11 @@ export default function Footer() {
         <View style={styles.linkColumn}>
           <Text style={styles.columnTitle}>Categories</Text>
           <TouchableOpacity onPress={() => router.push('/category/all-jewellery')}><Text style={styles.link}>All Jewellery</Text></TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push('/category/mangalsutra')}><Text style={styles.link}>Mangalsutra</Text></TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push('/category/earrings')}><Text style={styles.link}>Earrings</Text></TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push('/category/necklaces')}><Text style={styles.link}>Necklaces</Text></TouchableOpacity>
-          <TouchableOpacity onPress={() => router.push('/category/rings')}><Text style={styles.link}>Rings</Text></TouchableOpacity>
+          {categories.map((category) => (
+            <TouchableOpacity key={category._id} onPress={() => router.push(`/category/${category.slug}`)}>
+              <Text style={styles.link}>{category.name}</Text>
+            </TouchableOpacity>
+          ))}
         </View>
       </View>
 

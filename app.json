@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "pahadi-collections",
+    "name": "Pahadi Collections",
     "slug": "pahadi-collections",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -20,7 +20,15 @@
       }
     },
     "android": {
+      "versionCode": 1,
       "package": "com.pahadi.collections",
+      "permissions": [
+        "android.permission.INTERNET",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        "android.permission.POST_NOTIFICATIONS",
+        "android.permission.VIBRATE"
+      ],
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/pahadiapp-icon.png"
@@ -37,6 +45,13 @@
       "./plugins/withRazorpay",
       "./plugins/withAndroidQueries",
       "expo-router",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app needs access to your photos to let you upload review images.",
+          "cameraPermission": false
+        }
+      ],
       [
         "expo-splash-screen",
         {

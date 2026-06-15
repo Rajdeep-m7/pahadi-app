@@ -103,11 +103,16 @@ export default function RootLayout() {
           if (data && data.data && data.data.orderStatus === 'processing') {
             console.log('[Recovery] Order was successful! Navigating to success...');
             await SecureStore.deleteItemAsync('pending_verification_order_id');
-            const clearCart = useCartStore.getState().clearCart;
-            clearCart();
+            
+            const cartStore = useCartStore.getState();
+            cartStore.clearCart();
+            cartStore.removeCoupon();
             
             setTimeout(() => {
-              router.replace('/success');
+              router.replace({
+                pathname: '/success',
+                params: { orderId: pendingOrderId }
+              } as any);
             }, 1000);
           } else {
             console.log('[Recovery] Order still pending or failed. Status:', data?.data?.orderStatus);
@@ -133,19 +138,20 @@ export default function RootLayout() {
 
   useEffect(() => {
     // Only fetch from backend once EVERYTHING is ready
-    if (cartHydrated && wishlistHydrated && authInitialized && isReady) {
+    if (cartHydrated && wishlistHydrated && authInitialized) {
       console.log('App ready: Hydrated and Authenticated. Syncing data...');
       initializeCart();
       fetchWishlist();
+      setIsReady(true);
 
       // Register device push token when authenticated
       if (isAuthenticated) {
         registerForPushNotificationsAsync();
       }
     }
-  }, [cartHydrated, wishlistHydrated, authInitialized, isReady, isAuthenticated]);
+  }, [cartHydrated, wishlistHydrated, authInitialized, isAuthenticated]);
 
-  if (!isReady) {
+  if (!isReady || !authInitialized || !cartHydrated || !wishlistHydrated) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#f59e0b" />
@@ -159,6 +165,7 @@ export default function RootLayout() {
         <Stack initialRouteName="(drawer)">
           <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
           <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+          <Stack.Screen name="profile" options={{ headerShown: false }} />
           <Stack.Screen name="legal" options={{ headerShown: false }} />
           <Stack.Screen name="checkout" options={{ title: 'Checkout' }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />

@@ -92,7 +92,7 @@ export default function ProductCard({
       {/* IMAGE SECTION */}
       <View style={styles.imageContainer}>
         <Image 
-          source={{ uri: image || 'https://via.placeholder.com/300x400' }} 
+          source={{ uri: image }} 
           style={[styles.image, isOutOfStock && styles.outOfStockImage]} 
         />
         

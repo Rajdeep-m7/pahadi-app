@@ -13,11 +13,13 @@ import axios from 'axios';
 import { BASE_URL } from '@/constants/config';
 import ProductCard from '@/components/ui/ProductCard';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useCartStore } from '@/store/cartStore';
 
 export default function SearchScreen() {
   const { q } = useLocalSearchParams<{ q: string }>();
   const [results, setResults] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const addToCart = useCartStore((state) => state.addToCart);
 
   useEffect(() => {
     if (q) {
@@ -29,7 +31,7 @@ export default function SearchScreen() {
     setLoading(true);
     try {
       const { data } = await axios.get(`${BASE_URL}/variants/search`, {
-        params: { search: q, limit: 50 },
+        params: { search: q, limit: 500 },
       });
       if (data && data.data && data.data.results) {
         setResults(data.data.results);
@@ -39,6 +41,19 @@ export default function SearchScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleAddToCart = (item: any) => {
+    addToCart(item._id, {
+      _id: item.productId?._id || '',
+      title: item.title,
+      image: item.coverImage?.url || '',
+      price: item.price,
+      mrp: item.mrp,
+      categoryName: item.productId?.categoryId?.name || '',
+      stocks: item.stocks,
+      effectiveTax: item.effectiveTax || null,
+    });
   };
 
   const formatPrice = (price: number) => `₹${price.toLocaleString()}`;
@@ -77,6 +92,7 @@ export default function SearchScreen() {
               rating={item.productId?.rating || 0}
               isOutOfStock={isOutOfStock}
               slug={item.slug}
+              onAddToCart={() => handleAddToCart(item)}
             />
           );
         }}

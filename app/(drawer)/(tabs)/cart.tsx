@@ -16,7 +16,7 @@ import { Fonts } from '@/constants/theme';
 import * as SecureStore from 'expo-secure-store';
 
 export default function CartScreen() {
-  const { items, updateQuantity, removeFromCart, clearCart, _hasHydrated, setHasHydrated } = useCartStore();
+  const { items, updateQuantity, removeFromCart, clearCart, _hasHydrated, setHasHydrated, appliedCoupon, removeCoupon } = useCartStore();
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
@@ -45,6 +45,18 @@ export default function CartScreen() {
     0
   );
 
+  const totalTax = items.reduce((acc, item) => {
+    if (!item.product.effectiveTax || item.product.effectiveTax.length === 0) return acc;
+    const itemPrice = item.product.price || 0;
+    const itemTax = item.product.effectiveTax.reduce((tAcc, slab) => {
+      return tAcc + (itemPrice * (slab.slab / 100));
+    }, 0);
+    return acc + (itemTax * item.quantity);
+  }, 0);
+
+  const discountAmount = appliedCoupon?.calculatedDiscount || 0;
+  const totalAmount = Math.round(subtotal + totalTax - discountAmount);
+
   const handleCheckout = async () => {
     const token = await SecureStore.getItemAsync('userToken');
     if (!token) {
@@ -53,7 +65,13 @@ export default function CartScreen() {
         'Please login to proceed with your order.',
         [
           { text: 'Cancel', style: 'cancel' },
-          { text: 'Login', onPress: () => router.push('/(auth)/login') },
+          { 
+            text: 'Login', 
+            onPress: () => router.push({
+              pathname: '/(auth)/login',
+              params: { redirectTo: '/checkout' }
+            }) 
+          },
         ]
       );
       return;
@@ -107,7 +125,7 @@ export default function CartScreen() {
         {items.map((item) => (
           <View key={item.variantId} style={styles.cartItem}>
             <Image
-              source={{ uri: item.product.image || 'https://via.placeholder.com/100' }}
+              source={{ uri: item.product.image }}
               style={styles.itemImage}
             />
             <View style={styles.itemDetails}>
@@ -120,6 +138,23 @@ export default function CartScreen() {
                 </TouchableOpacity>
               </View>
               <Text style={styles.itemCategory}>{item.product.categoryName}</Text>
+
+              {/* Tax Display */}
+              <View style={styles.taxBadgeContainer}>
+                {item.product.effectiveTax && item.product.effectiveTax.length > 0 ? (
+                  item.product.effectiveTax.map((slab, idx) => (
+                    <View key={idx} style={styles.taxBadge}>
+                      <Text style={styles.taxText}>
+                        {slab.name} {slab.slab}%
+                      </Text>
+                    </View>
+                  ))
+                ) : (
+                  <View style={[styles.taxBadge, styles.zeroTaxBadge]}>
+                    <Text style={[styles.taxText, styles.zeroTaxText]}>TAX 0%</Text>
+                  </View>
+                )}
+              </View>
               
               <View style={styles.priceRow}>
                 <Text style={styles.itemPrice}>
@@ -135,10 +170,18 @@ export default function CartScreen() {
                   </TouchableOpacity>
                   <Text style={styles.quantityText}>{item.quantity}</Text>
                   <TouchableOpacity
-                    style={styles.qtyButton}
+                    style={[
+                      styles.qtyButton,
+                      item.quantity >= (item.product.stocks || 999) && styles.qtyButtonDisabled
+                    ]}
                     onPress={() => updateQuantity(item.variantId, item.quantity + 1)}
+                    disabled={item.quantity >= (item.product.stocks || 999)}
                   >
-                    <IconSymbol name="plus" size={14} color="#000" />
+                    <IconSymbol 
+                      name="plus" 
+                      size={14} 
+                      color={item.quantity >= (item.product.stocks || 999) ? '#9ca3af' : '#000'} 
+                    />
                   </TouchableOpacity>
                 </View>
               </View>
@@ -153,12 +196,28 @@ export default function CartScreen() {
           <Text style={styles.summaryValue}>{formatPrice(subtotal)}</Text>
         </View>
         <View style={styles.summaryRow}>
+          <Text style={styles.summaryLabel}>Estimated Tax</Text>
+          <Text style={styles.summaryValue}>{formatPrice(Math.round(totalTax))}</Text>
+        </View>
+        {discountAmount > 0 && (
+          <View style={styles.summaryRow}>
+            <View style={styles.discountLabelRow}>
+              <Text style={styles.summaryLabel}>Discount</Text>
+              <Text style={styles.couponCodeText}>({appliedCoupon?.code})</Text>
+              <TouchableOpacity onPress={() => removeCoupon()}>
+                <IconSymbol name="xmark.circle.fill" size={14} color="#ef4444" />
+              </TouchableOpacity>
+            </View>
+            <Text style={[styles.summaryValue, { color: '#16a34a' }]}>-{formatPrice(Math.round(discountAmount))}</Text>
+          </View>
+        )}
+        <View style={styles.summaryRow}>
           <Text style={styles.summaryLabel}>Shipping</Text>
           <Text style={[styles.summaryValue, { color: '#16a34a' }]}>FREE</Text>
         </View>
         <View style={[styles.summaryRow, styles.totalRow]}>
           <Text style={styles.totalLabel}>Total</Text>
-          <Text style={styles.totalValue}>{formatPrice(subtotal)}</Text>
+          <Text style={styles.totalValue}>{formatPrice(totalAmount)}</Text>
         </View>
 
         <TouchableOpacity style={styles.checkoutButton} onPress={handleCheckout}>
@@ -246,6 +305,33 @@ const styles = StyleSheet.create({
     color: '#9ca3af',
     marginTop: 2,
   },
+  taxBadgeContainer: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 4,
+    marginTop: 4,
+  },
+  taxBadge: {
+    backgroundColor: '#fffbeb',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#fef3c7',
+  },
+  taxText: {
+    fontSize: 9,
+    fontWeight: '700',
+    color: '#b98b5f',
+    textTransform: 'uppercase',
+  },
+  zeroTaxBadge: {
+    backgroundColor: '#f9fafb',
+    borderColor: '#f3f4f6',
+  },
+  zeroTaxText: {
+    color: '#9ca3af',
+  },
   priceRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -269,6 +355,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#e5e7eb', // Light background
     borderRadius: 8,
     marginVertical: 4,
+  },
+  qtyButtonDisabled: {
+    backgroundColor: '#f3f4f6',
   },
   quantityText: {
     fontSize: 14,
@@ -300,6 +389,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     color: '#111827',
+  },
+  discountLabelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  couponCodeText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#16a34a',
+    backgroundColor: '#f0fdf4',
+    paddingHorizontal: 4,
+    paddingVertical: 1,
+    borderRadius: 4,
+    overflow: 'hidden',
   },
   totalRow: {
     marginTop: 8,
