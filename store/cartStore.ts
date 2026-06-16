@@ -41,6 +41,7 @@ export interface CartItem {
     discount?: number;
     categoryName?: string;
     stocks?: number;
+    slug?: string;
     effectiveTax?: TaxSlab[] | null;
   };
 }
@@ -230,6 +231,7 @@ export const useCartStore = create<CartState>()(
                 discount: item.variantId?.discount,
                 categoryName: item.variantId?.productId?.categoryId?.name || '',
                 stocks: item.variantId?.stocks,
+                slug: item.variantId?.slug || '',
                 effectiveTax: item.effectiveTax || item.variantId?.effectiveTax || null,
               },
             }));
@@ -291,6 +293,7 @@ export const useCartStore = create<CartState>()(
                 discount: item.variantId?.discount,
                 categoryName: item.variantId?.productId?.categoryId?.name || '',
                 stocks: item.variantId?.stocks,
+                slug: item.variantId?.slug || '',
                 effectiveTax: item.effectiveTax || item.variantId?.effectiveTax || null,
               },
             }));

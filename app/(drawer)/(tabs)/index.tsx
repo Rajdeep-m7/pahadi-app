@@ -164,6 +164,7 @@ export default function HomeScreen() {
       discount: product.displayDiscount,
       categoryName: product.categoryId?.name,
       stocks: product.stocks,
+      slug: product.default_slug,
       effectiveTax: product.effectiveTax,
     });
   };

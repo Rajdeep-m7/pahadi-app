@@ -269,7 +269,7 @@ export default function OrderDetailsScreen() {
         </View>
 
         {/* CANCEL BUTTON */}
-        {(order.orderStatus === 'processing' || order.orderStatus === 'pending_payment') && (
+        {(order.orderStatus === 'processing' || order.orderStatus === 'pending_payment') && (!order.shipments || order.shipments.length === 0) && (
           <TouchableOpacity style={styles.cancelOrderBtn} onPress={() => setShowCancelModal(true)}>
              <IconSymbol name="xmark.circle.fill" size={16} color="#ef4444" />
              <Text style={styles.cancelOrderText}>Cancel Order</Text>
@@ -430,7 +430,7 @@ export default function OrderDetailsScreen() {
                     )}
 
                     {/* CANCEL ITEM ACTION */}
-                    {(order.orderStatus === 'processing' || order.orderStatus === 'pending_payment') && item.itemStatus === 'active' && (
+                    {(order.orderStatus === 'processing' || order.orderStatus === 'pending_payment') && item.itemStatus === 'active' && (!order.shipments || order.shipments.length === 0) && (
                       <TouchableOpacity 
                         style={styles.itemCancelBtn}
                         onPress={() => {

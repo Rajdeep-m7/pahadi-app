@@ -402,7 +402,12 @@ export default function CheckoutScreen() {
           <Text style={styles.sectionTitle}>Order Summary</Text>
           <View style={styles.orderSummary}>
             {items.map((item) => (
-              <View key={item.variantId} style={styles.summaryItem}>
+              <TouchableOpacity 
+                key={item.variantId} 
+                style={styles.summaryItem}
+                onPress={() => item.product.slug && router.push(`/product/${item.product.slug}`)}
+                activeOpacity={0.7}
+              >
                 <Image source={{ uri: item.product.image }} style={styles.itemThumb} />
                 <View style={styles.itemInfo}>
                   <Text style={styles.itemTitle} numberOfLines={1}>{item.product.title}</Text>
@@ -413,7 +418,7 @@ export default function CheckoutScreen() {
                 <Text style={styles.itemTotal}>
                   {formatPrice(item.product.price * item.quantity)}
                 </Text>
-              </View>
+              </TouchableOpacity>
             ))}
           </View>
         </View>

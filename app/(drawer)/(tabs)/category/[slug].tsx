@@ -171,8 +171,9 @@ export default function CategoryPage() {
       discount: product.displayDiscount,
       categoryName: product.categoryId?.name,
       stocks: product.stocks,
-      effectiveTax: (product as any).effectiveTax,
-    });
+      slug: product.default_slug,
+      effectiveTax: product.effectiveTax,
+      });
   };
 
   const sortOptions = [

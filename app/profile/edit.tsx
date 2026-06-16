@@ -215,15 +215,15 @@ export default function EditProfileScreen() {
                 <Text style={styles.otpTitle}>Verify Deletion</Text>
                 <Text style={styles.otpSubtitle}>Enter the 6-digit code sent to your phone to confirm account deletion.</Text>
                 
-                <View style={styles.inputGroup}>
-                  <View style={styles.inputWrapper}>
-                    <IconSymbol name="shield.fill" size={20} color="#9ca3af" style={styles.inputIcon} />
+                <View style={styles.otpInputGroup}>
+                  <View style={styles.otpBox}>
+                    <IconSymbol name="shield.fill" size={20} color="#ef4444" style={styles.inputIcon} />
                     <TextInput
-                      style={[styles.input, { textAlign: 'center', letterSpacing: 8, fontSize: 20, fontWeight: 'bold' }]}
+                      style={styles.otpTextInput}
                       value={otp}
                       onChangeText={(val) => setOtp(val.replace(/\D/g, '').slice(0, 6))}
                       placeholder="000000"
-                      placeholderTextColor="#374151"
+                      placeholderTextColor="#9ca3af"
                       keyboardType="numeric"
                       maxLength={6}
                       autoFocus
@@ -315,6 +315,7 @@ const styles = StyleSheet.create({
   deleteConfirmButton: {
     backgroundColor: '#ef4444',
     paddingVertical: 18,
+    padding:5,
     borderRadius: 16,
     alignItems: 'center',
     marginTop: 12,
@@ -362,5 +363,33 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: '600',
   },
+  otpInputGroup: {
+    width: '100%',
+    alignItems: 'center',
+    marginVertical: 10,
+  },
+  otpBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f9fafb',
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: '#e5e7eb',
+    paddingHorizontal: 20,
+    width: '90%', // Standard centered width
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  otpTextInput: {
+    flex: 1,
+    paddingVertical: 18,
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#111827',
+    textAlign: 'center',
+    letterSpacing: 10,
+  },
 });
-

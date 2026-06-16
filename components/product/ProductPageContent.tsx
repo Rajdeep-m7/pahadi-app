@@ -90,6 +90,7 @@ export default function ProductPageContent({
       mrp: currentVariant.mrp,
       categoryName: productDetails.categoryId?.name,
       stocks: currentVariant.stocks,
+      slug: currentVariant.slug,
       effectiveTax: effectiveTax || currentVariant.effectiveTax,
     });
   };

@@ -124,68 +124,74 @@ export default function CartScreen() {
       <ScrollView style={styles.cartList} showsVerticalScrollIndicator={false}>
         {items.map((item) => (
           <View key={item.variantId} style={styles.cartItem}>
-            <Image
-              source={{ uri: item.product.image }}
-              style={styles.itemImage}
-            />
-            <View style={styles.itemDetails}>
-              <View style={styles.itemHeader}>
-                <Text style={styles.itemTitle} numberOfLines={1}>
-                  {item.product.title}
-                </Text>
-                <TouchableOpacity onPress={() => removeFromCart(item.variantId)}>
-                  <IconSymbol name="trash.fill" size={18} color="#ef4444" />
-                </TouchableOpacity>
-              </View>
-              <Text style={styles.itemCategory}>{item.product.categoryName}</Text>
-
-              {/* Tax Display */}
-              <View style={styles.taxBadgeContainer}>
-                {item.product.effectiveTax && item.product.effectiveTax.length > 0 ? (
-                  item.product.effectiveTax.map((slab, idx) => (
-                    <View key={idx} style={styles.taxBadge}>
-                      <Text style={styles.taxText}>
-                        {slab.name} {slab.slab}%
-                      </Text>
-                    </View>
-                  ))
-                ) : (
-                  <View style={[styles.taxBadge, styles.zeroTaxBadge]}>
-                    <Text style={[styles.taxText, styles.zeroTaxText]}>TAX 0%</Text>
-                  </View>
-                )}
-              </View>
-              
-              <View style={styles.priceRow}>
-                <Text style={styles.itemPrice}>
-                  {formatPrice(item.product.price)}
-                </Text>
-                
-                <View style={styles.quantityContainer}>
-                  <TouchableOpacity
-                    style={styles.qtyButton}
-                    onPress={() => updateQuantity(item.variantId, item.quantity - 1)}
-                  >
-                    <IconSymbol name="minus" size={14} color="#000" />
-                  </TouchableOpacity>
-                  <Text style={styles.quantityText}>{item.quantity}</Text>
-                  <TouchableOpacity
-                    style={[
-                      styles.qtyButton,
-                      item.quantity >= (item.product.stocks || 999) && styles.qtyButtonDisabled
-                    ]}
-                    onPress={() => updateQuantity(item.variantId, item.quantity + 1)}
-                    disabled={item.quantity >= (item.product.stocks || 999)}
-                  >
-                    <IconSymbol 
-                      name="plus" 
-                      size={14} 
-                      color={item.quantity >= (item.product.stocks || 999) ? '#9ca3af' : '#000'} 
-                    />
+            <TouchableOpacity 
+              style={styles.itemTouchable}
+              onPress={() => item.product.slug && router.push(`/product/${item.product.slug}`)}
+              activeOpacity={0.7}
+            >
+              <Image
+                source={{ uri: item.product.image }}
+                style={styles.itemImage}
+              />
+              <View style={styles.itemDetails}>
+                <View style={styles.itemHeader}>
+                  <Text style={styles.itemTitle} numberOfLines={1}>
+                    {item.product.title}
+                  </Text>
+                  <TouchableOpacity onPress={() => removeFromCart(item.variantId)}>
+                    <IconSymbol name="trash.fill" size={18} color="#ef4444" />
                   </TouchableOpacity>
                 </View>
+                <Text style={styles.itemCategory}>{item.product.categoryName}</Text>
+
+                {/* Tax Display */}
+                <View style={styles.taxBadgeContainer}>
+                  {item.product.effectiveTax && item.product.effectiveTax.length > 0 ? (
+                    item.product.effectiveTax.map((slab, idx) => (
+                      <View key={idx} style={styles.taxBadge}>
+                        <Text style={styles.taxText}>
+                          {slab.name} {slab.slab}%
+                        </Text>
+                      </View>
+                    ))
+                  ) : (
+                    <View style={[styles.taxBadge, styles.zeroTaxBadge]}>
+                      <Text style={[styles.taxText, styles.zeroTaxText]}>TAX 0%</Text>
+                    </View>
+                  )}
+                </View>
+                
+                <View style={styles.priceRow}>
+                  <Text style={styles.itemPrice}>
+                    {formatPrice(item.product.price)}
+                  </Text>
+                  
+                  <View style={styles.quantityContainer}>
+                    <TouchableOpacity
+                      style={styles.qtyButton}
+                      onPress={() => updateQuantity(item.variantId, item.quantity - 1)}
+                    >
+                      <IconSymbol name="minus" size={14} color="#000" />
+                    </TouchableOpacity>
+                    <Text style={styles.quantityText}>{item.quantity}</Text>
+                    <TouchableOpacity
+                      style={[
+                        styles.qtyButton,
+                        item.quantity >= (item.product.stocks || 999) && styles.qtyButtonDisabled
+                      ]}
+                      onPress={() => updateQuantity(item.variantId, item.quantity + 1)}
+                      disabled={item.quantity >= (item.product.stocks || 999)}
+                    >
+                      <IconSymbol 
+                        name="plus" 
+                        size={14} 
+                        color={item.quantity >= (item.product.stocks || 999) ? '#9ca3af' : '#000'} 
+                      />
+                    </TouchableOpacity>
+                  </View>
+                </View>
               </View>
-            </View>
+            </TouchableOpacity>
           </View>
         ))}
       </ScrollView>
@@ -276,6 +282,10 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderWidth: 1,
     borderColor: '#f3f4f6',
+  },
+  itemTouchable: {
+    flexDirection: 'row',
+    flex: 1,
   },
   itemImage: {
     width: 90,

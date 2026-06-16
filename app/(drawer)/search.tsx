@@ -52,6 +52,7 @@ export default function SearchScreen() {
       mrp: item.mrp,
       categoryName: item.productId?.categoryId?.name || '',
       stocks: item.stocks,
+      slug: item.slug || item.default_slug,
       effectiveTax: item.effectiveTax || null,
     });
   };
